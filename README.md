@@ -25,8 +25,8 @@ last stood.
 
 A new edition is not mandatory every year. A year with no changes produces
 no edition, and the expectation is that new editions become rarer as the
-specification stabilises -- a format for radios in sheds and trackers on
-ridges earns trust by changing less, not more.
+specification stabilises. A format for radios in sheds and trackers on
+ridges is trusted because it rarely changes.
 
 An implementation states the edition it reads (for example "XPRS-2026").
 Within the format's own rules that claim is rarely load-bearing: unknown
