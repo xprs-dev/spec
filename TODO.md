@@ -43,9 +43,11 @@ m: and in field values; the wire transform (block-character runs in m:,
 deletion inside values); PBKDF2-HMAC-SHA256 key derivation (salt
 "xprs-xr" || nonce, 100000 iterations, first 16 bytes); AES-128-CTR with
 the 12-byte nonce and 32-bit big-endian counter from zero; base64url
-framing; the order-first line rule on reassembly (first N lines fill the N
-bar runs, remaining key=value lines replace field values whole); the ->
-sentinel as the sole success test. Default passphrase is sixteen number
-signs. Done when the section 9.2.1 worked packet (fixed nonce
-000102030405060708090a0b) round-trips in the implementation and the
-corpus wire decrypts to Max / pier2 / pos=38.7223,-9.1393.
+framing; the packet-order line rule on reassembly (one bare line per bar
+run, field runs first then m: runs, exact character-count match and a
+post-substitution type check); bar-stripping in every value parser
+(section 4.3 amendment); the -> sentinel as the sole success test; the
+permitted-fields table enforced on composition and on restoration.
+Default passphrase is sixteen number signs. Done when the section 9.2.1
+worked packet (fixed nonce 000102030405060708090a0b) round-trips in the
+implementation and the corpus wire decrypts to 223 / 393 / Max / pier2.
