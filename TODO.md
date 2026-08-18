@@ -35,3 +35,17 @@ Done when: the Dart signer and verifier use the XPRS strings, the aurora
 signing tests pass against the spec's worked example (aux fixed to zero,
 toy key d=7 must reproduce the section 9.1.2 values), and the corpus wire
 verifies in the implementation.
+
+## Implement the redaction profile (xr:, section 9.2.1)
+
+Specified, not implemented. Needed: composer support for ((...)) marking in
+m: and in field values; the wire transform (block-character runs in m:,
+deletion inside values); PBKDF2-HMAC-SHA256 key derivation (salt
+"xprs-xr" || nonce, 100000 iterations, first 16 bytes); AES-128-CTR with
+the 12-byte nonce and 32-bit big-endian counter from zero; base64url
+framing; the order-first line rule on reassembly (first N lines fill the N
+bar runs, remaining key=value lines replace field values whole); the ->
+sentinel as the sole success test. Default passphrase is sixteen number
+signs. Done when the section 9.2.1 worked packet (fixed nonce
+000102030405060708090a0b) round-trips in the implementation and the
+corpus wire decrypts to Max / pier2 / pos=38.7223,-9.1393.
