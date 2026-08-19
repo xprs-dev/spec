@@ -35,3 +35,17 @@ degrades gracefully against a writer of another.
 
 
 `API-HTTP.md` specifies the HTTP interface stations offer on their LAN.
+
+## Author and licence
+
+XPRS is written by Max Brito.
+
+The specification is licensed under [Creative Commons Attribution 4.0
+International](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0):
+share it and adapt it for any purpose, including commercially, as long as
+you credit Max Brito, link the licence and say what you changed. Full text
+in [LICENSE](LICENSE).
+
+Implementations are separate works under their own licences. Writing one
+needs no permission, and an implementation is not a derivative of this
+document.
