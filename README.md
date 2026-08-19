@@ -32,3 +32,6 @@ An implementation states the edition it reads (for example "XPRS-2026").
 Within the format's own rules that claim is rarely load-bearing: unknown
 keys and words are skipped rather than rejected, so a reader of one edition
 degrades gracefully against a writer of another.
+
+
+`API-HTTP.md` specifies the HTTP interface stations offer on their LAN.
