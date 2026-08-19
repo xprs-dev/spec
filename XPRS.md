@@ -121,7 +121,7 @@ t:message f:X1QZ3N d:LISBOA ts:2026-08-08_14:26:40 m:net starts in ten minutes
 
 ## 3. Callsigns
 
-An XPRS callsign is `X1`, `X3`, `X4` or `X5` followed by four characters
+An XPRS callsign is `X1`, `X3`, `X4` or `X5` followed by two to five characters
 derived from the holder's public key:
 
 ```
@@ -136,8 +136,15 @@ else. What differs is only who holds the private half: a person for `X1`, a
 machine for `X3`, the controller that operates the device for `X4`, and
 whoever administers the group for `X5`.
 
-The four characters are taken from the bech32 encoding of the key, so the
-letters `b`, `i` and `o` and the digit `1` never appear in them.
+Those characters are taken from the bech32 encoding of the key, so the letters
+`b`, `i` and `o` and the digit `1` never appear in them.
+
+**How many characters is the holder's own choice, and four is the default.** A
+station that never chooses shows four, which is what every self-generated
+callsign in the field is. The choice is made once, when the key is generated,
+and is then fixed: the callsign is how the holder is addressed and stored, and
+a station that changed it would be a different station to everyone who had
+heard it.
 
 Callsigns are **always uppercase** and are **not a fixed length**. A callsign
 issued by a radio authority is equally valid on the wire, including a suffix:
@@ -148,11 +155,46 @@ t:message f:CT1ABC-9 d:G0XYZ/P ts:2026-08-08_14:26:40 m:gate is closed, use the 
 
 89 bytes. Nothing in this format assumes a callsign length.
 
-An XPRS callsign is a label, not an identity. Four characters is approximately
-one million values, and collisions can be produced deliberately. A receiver that
-needs to establish identity verifies a signature against the full public key
-(section 9). No authority issues, revokes or vouches for an `X1`, `X3`, `X4` or
-`X5` callsign.
+An XPRS callsign is a label, not an identity, and a shorter one is a weaker
+label:
+
+| characters | callsigns | two holders collide after | forging one costs |
+|---|---|---|---|
+| 2 | 1,024 | ~40 holders | ~1,024 keypairs |
+| 3 | 32,768 | ~226 holders | ~32,768 keypairs |
+| 4 | 1,048,576 | ~1,283 holders | ~1,048,576 keypairs |
+| 5 | 33,554,432 | ~7,259 holders | ~33,554,432 keypairs |
+
+Collisions can be produced deliberately at any of these lengths -- at two
+characters, in about a thousand tries. A receiver that needs to establish
+identity verifies a signature against the full public key (section 9). No
+authority issues, revokes or vouches for an `X1`, `X3`, `X4` or `X5` callsign.
+
+### 3.0.1 A callsign is matched whole, never by prefix
+
+Because the characters are a prefix of the key's encoding, one key can derive
+four different callsigns: a holder whose key encodes to `qpzr8...` could show
+`X1QP`, `X1QPZ`, `X1QPZR` or `X1QPZR8`. They are **four different labels, and
+the holder wears exactly one of them.**
+
+The order of operations is fixed, and inverting it would break section 3.1:
+
+```
+strip the device suffix first, then compare the bare callsign as a whole string
+
+X1ABCD-1  and  X1ABCD-2   the same person on two devices
+X1AB      and  X1ABCD     different labels, even from one key
+```
+
+A station answers to its own bare callsign and to its own suffixed forms, and
+to no other truncation of its key. A receiver never resolves a callsign with a
+prefix match.
+
+Checking that a callsign *could* have come from a key -- recomputing the bech32
+encoding and comparing that many characters -- does not establish which length
+the holder chose, since all four truncations of one key pass such a test. What
+makes a callsign canonical is the identity announcement that declares it
+(section 10.6), which is signed.
 
 That last sentence has a consequence on the air: **a self-generated callsign may
 never be transmitted on licensed spectrum**, where identifying the station is a
@@ -163,8 +205,8 @@ with.
 ### 3.1 One person, several devices
 
 The same person runs a phone, a tablet, and a node in the shed. All three hold
-the same key, so all three derive the same four characters -- and on the air they
-are one callsign saying three different things.
+the same key and show it at the same length, so all three derive the same
+callsign -- and on the air they are one callsign saying three different things.
 
 APRS answered this with an SSID: `CT1ABC-9`. XPRS keeps that notation, because
 it is the one every operator already reads, and changes what sits underneath it.
