@@ -5,14 +5,22 @@ mesh networks -- 250-byte `key:value` packets carrying messages, observations,
 files, commands and services across LoRa, BLE, WiFi, HF/VHF/UHF and the
 internet.
 
-The specification is [XPRS.md](XPRS.md). The conformance corpus is
-[xprs_corpus.json](xprs_corpus.json): every worked example in the document as
-a wire with its byte count and derived identifier -- an implementation that
-replays all of them byte-exact and identifier-exact reads the format.
+The specification is [XPRS.md](XPRS.md); every section is linkable, as
+[XPRS.md#3-callsigns](XPRS.md#3-callsigns). [API-HTTP.md](API-HTTP.md)
+specifies the HTTP interface stations offer on their LAN.
 
-Reference implementations live in the
-[geograms](https://github.com/geograms) project (Dart host and ESP32 C
-codec); both replay the corpus in their test suites.
+The conformance corpus is [xprs_corpus.json](xprs_corpus.json): every worked
+example in the document as a wire with its byte count and derived identifier
+-- an implementation that replays all of them byte-exact and
+identifier-exact reads the format.
+
+Reference implementations:
+[xprs-flutter](https://github.com/xprs-dev/xprs-flutter) for phones and
+desktops, [xprs-esp32](https://github.com/xprs-dev/xprs-esp32) for boards,
+[reticulum-dart](https://github.com/xprs-dev/reticulum-dart) for the shared
+networking library, and [wapps](https://github.com/xprs-dev/wapps) for the
+applications that run inside the host. The Dart and C codecs both replay the
+corpus in their test suites.
 
 ## Editions
 
@@ -34,7 +42,33 @@ keys and words are skipped rather than rejected, so a reader of one edition
 degrades gracefully against a writer of another.
 
 
-`API-HTTP.md` specifies the HTTP interface stations offer on their LAN.
+## Citing XPRS
+
+The document is edited continuously and has no DOI, no publisher and no
+release tags, so a citation names the edition, the draft it stood at when you
+read it, and the date you read it. Replace the access date with your own.
+
+```
+Brito, M. (2026). XPRS: eXtended Packet Radio System.
+    Protocol specification, edition XPRS-2026, Draft 10.
+    https://xprs.dev/ [accessed YYYY-MM-DD]
+```
+
+```bibtex
+@misc{xprs,
+  author       = {Max Brito},
+  title        = {{XPRS}: {eXtended} {Packet} {Radio} {System}},
+  howpublished = {Protocol specification, edition XPRS-2026, Draft 10},
+  year         = {2026},
+  url          = {https://xprs.dev/},
+  note         = {Accessed: YYYY-MM-DD}
+}
+```
+
+To cite one rule rather than the format, give the section number -- they are
+stable within an edition and every section is linkable, as
+[XPRS.md#3-callsigns](XPRS.md#3-callsigns). Link the commit you read, so the
+sentence you quote is the sentence a reader finds.
 
 ## Author and licence
 
