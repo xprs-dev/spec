@@ -16,7 +16,7 @@ identifier-exact reads the format.
 
 Reference implementations:
 [xprs-flutter](https://github.com/xprs-dev/xprs-flutter) for phones and
-desktops, [xprs-esp32](https://github.com/xprs-dev/xprs-esp32) for boards,
+desktops, [xprs-firmware](https://github.com/xprs-dev/xprs-firmware) for boards,
 [reticulum-dart](https://github.com/xprs-dev/reticulum-dart) for the shared
 networking library, and [wapps](https://github.com/xprs-dev/wapps) for the
 applications that run inside the host. The Dart and C codecs both replay the

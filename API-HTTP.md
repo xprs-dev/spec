@@ -13,7 +13,7 @@ the same network: browsing what a station heard, reading its log, handing it
 a packet to transmit. Nothing here adds vocabulary to the protocol.
 
 Reference implementations: the Aurora application (desktop and phone) and the
-xprs-esp32 boards. Where they differ today, the table at the end says which
+xprs-firmware boards. Where they differ today, the table at the end says which
 side has to move.
 
 ## General rules
@@ -196,7 +196,7 @@ they follow this document. Current extras:
 
 ## Compatibility today
 
-| Endpoint | Aurora | xprs-esp32 | Note |
+| Endpoint | Aurora | xprs-firmware | Note |
 |---|---|---|---|
 | GET /api/status | yes (own shape) | yes | shared keys: app, callsign |
 | GET /api/services | no | yes | Aurora should adopt |
