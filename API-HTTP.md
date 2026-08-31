@@ -56,7 +56,7 @@ Who and how this station is.
 ```
 
 `app`, `callsign`, `uptime_s` and `time` are required; the rest is what the
-station has. Aurora reports its own shape today (see the table); its `app`
+station has. The application reports its own shape today (see the table); its `app`
 and callsign fields are the stable part.
 
 ### GET /api/services
@@ -112,7 +112,7 @@ Query parameters, all optional:
 }
 ```
 
-Row keys are Aurora's: `ts` (the sender's claim, 0 when it made none),
+Row keys are the application's: `ts` (the sender's claim, 0 when it made none),
 `bearer`, `rssi` (0 when the bearer has none), `from`, `to` (empty for a
 broadcast), `type`, `sig` (`verified`, `unverified`, `forged`, `none`),
 `own` (true when this station originated it), `wire` (the packet verbatim --
@@ -235,8 +235,8 @@ they follow this document. Current extras:
 | Endpoint | The application | xprs-firmware | Note |
 |---|---|---|---|
 | GET /api/status | yes (own shape) | yes | shared keys: app, callsign |
-| GET /api/services | no | yes | Aurora should adopt |
-| GET /api/xprs/history | yes | yes | ESP32 adds `call`, `dir` params; Aurora should adopt |
-| GET /api/xprs/mail | no | yes | Aurora should adopt |
-| POST /api/xprs/send | composes a packet | validates only | Aurora should also accept a raw `wire` |
+| GET /api/services | no | yes | the application should adopt |
+| GET /api/xprs/history | yes | yes | ESP32 adds `call`, `dir` params; the application should adopt |
+| GET /api/xprs/mail | no | yes | the application should adopt |
+| POST /api/xprs/send | composes a packet | validates only | the application should also accept a raw `wire` |
 | GET /api/log | yes (plain strings) | yes (typed `t`/`m`) | converge on typed lines |
