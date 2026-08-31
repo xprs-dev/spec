@@ -106,6 +106,8 @@ h1 { font-family: 'Courier New', monospace; font-size: 2.1rem;
 .meta a { margin-right: 0.9rem; white-space: nowrap; }
 main h1 { font-size: 1.5rem; margin: 3rem 0 0.8rem; padding-top: 1.4rem;
      border-top: 3px double var(--line); }
+main > h1:first-child { font-size: 2.1rem; border-top: 0;
+     margin-top: 0; padding-top: 0; }
 h2 { font-family: 'Courier New', monospace; font-size: 1.15rem;
      margin: 2.4rem 0 0.8rem; padding-top: 1.2rem;
      border-top: 1px solid var(--line); scroll-margin-top: 1rem; }
