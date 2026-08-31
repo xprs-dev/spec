@@ -34,7 +34,7 @@ def slug(text):
     return s.replace(" ", "-")
 
 
-HEADING = re.compile(r"<h([234])>(.*?)</h\1>", re.S)
+HEADING = re.compile(r"<h([1234])>(.*?)</h\1>", re.S)
 
 
 def anchor(body):
@@ -58,15 +58,16 @@ def anchor(body):
 
 def nav(toc, current):
     """Sidebar: every section, and the subsections of the document itself."""
-    out = ['<nav class="toc" aria-label="Contents"><details open>',
+    out = ['<nav class="toc" aria-label="Contents"><details>',
            "<summary>Contents</summary><ul>"]
+    top = min((l for l, _, _ in toc), default=2)
     for level, s, text in toc:
-        # The document carries its own contents list, which is the navigation
-        # on a narrow screen. In this column it would be an entry pointing at
-        # a copy of this column.
-        if level > 3 or text.strip().lower() == "contents":
+        # Two levels: parts and sections. Anything deeper belongs to the
+        # text, not to a navigation column.
+        if level > top + 1 or text.strip().lower() == "contents":
             continue
-        out.append(f'<li class="l{level}"><a href="#{s}">{html.escape(text)}</a></li>')
+        cls = "part" if level == top else "sect"
+        out.append(f'<li class="{cls}"><a href="#{s}">{html.escape(text)}</a></li>')
     out.append("</ul></details></nav>")
     return "\n".join(out)
 
@@ -103,6 +104,8 @@ h1 { font-family: 'Courier New', monospace; font-size: 2.1rem;
 .tagline { color: var(--dim); margin-bottom: 0.4rem; }
 .meta { color: var(--dim); font-size: 0.9rem; margin-bottom: 2rem; }
 .meta a { margin-right: 0.9rem; white-space: nowrap; }
+main h1 { font-size: 1.5rem; margin: 3rem 0 0.8rem; padding-top: 1.4rem;
+     border-top: 3px double var(--line); }
 h2 { font-family: 'Courier New', monospace; font-size: 1.15rem;
      margin: 2.4rem 0 0.8rem; padding-top: 1.2rem;
      border-top: 1px solid var(--line); scroll-margin-top: 1rem; }
@@ -110,11 +113,11 @@ h3 { font-family: 'Courier New', monospace; font-size: 1rem;
      margin: 1.8rem 0 0.6rem; scroll-margin-top: 1rem; }
 h4 { font-family: 'Courier New', monospace; font-size: 0.95rem;
      margin: 1.4rem 0 0.5rem; scroll-margin-top: 1rem; }
-h2 a, h3 a, h4 a { color: inherit; text-decoration: none; }
-h2 a::after, h3 a::after, h4 a::after {
+main h1 a, h2 a, h3 a, h4 a { color: inherit; text-decoration: none; }
+main h1 a::after, h2 a::after, h3 a::after, h4 a::after {
   content: ' #'; color: var(--dim); opacity: 0.3; font-weight: normal;
 }
-h2 a:hover, h3 a:hover, h4 a:hover { color: var(--accent); }
+main h1 a:hover, h2 a:hover, h3 a:hover, h4 a:hover { color: var(--accent); }
 p { margin-bottom: 0.9rem; }
 a { color: var(--accent); }
 ul, ol { margin: 0 0 0.9rem 1.4rem; }
@@ -143,8 +146,9 @@ th { font-family: 'Courier New', monospace; font-weight: normal;
 .toc li { margin: 0 0 0.25rem; }
 .toc a { text-decoration: none; }
 .toc a:hover { text-decoration: underline; }
-.toc .l3 { padding-left: 0.9rem; font-size: 0.95em; }
-.toc .l3 a { color: var(--dim); }
+.toc .part { font-family: 'Courier New', monospace; margin-top: 0.7rem; }
+.toc .sect { padding-left: 0.9rem; }
+.toc .sect a { color: var(--dim); }
 footer { margin-top: 3rem; padding-top: 1.2rem;
          border-top: 1px solid var(--line);
          color: var(--dim); font-size: 0.9rem; }
@@ -171,6 +175,12 @@ PAGE = """<!doctype html>
 <footer>{footer}</footer>
 </main>
 </div>
+<script>
+if (matchMedia('(min-width: 62rem)').matches) {{
+  var d = document.querySelector('.toc details');
+  if (d) d.open = true;
+}}
+</script>
 </body>
 </html>
 """
@@ -178,6 +188,9 @@ PAGE = """<!doctype html>
 
 def render(md_text):
     body = markdown.markdown(md_text, extensions=EXTENSIONS)
+    # The document's own title is replaced by the page header, so it is
+    # dropped before anchoring or it would head the contents column too.
+    body = re.sub(r"^\s*<h1>.*?</h1>\s*", "", body, count=1, flags=re.S)
     body, toc = anchor(body)
     # Wrap tables so a wide one scrolls inside itself.
     body = body.replace("<table>", '<div class="tw"><table>')
@@ -185,9 +198,12 @@ def render(md_text):
     return body, toc
 
 
-def strip_leading(body, title_html):
-    """Drop the document's own H1 and the paragraph the page header repeats."""
-    return re.sub(r"^\s*<h1>.*?</h1>\s*", "", body, count=1, flags=re.S)
+def strip_contents(body):
+    """Drop the in-document contents section; the sidebar carries that list.
+
+    The Markdown keeps it for anyone reading the file itself."""
+    return re.sub(
+        r'(<hr ?/?>\n?)?<h2 id="contents">.*?<hr ?/?>\n?', "", body, count=1, flags=re.S)
 
 
 def main():
@@ -198,7 +214,7 @@ def main():
     spec = (ROOT / "XPRS.md").read_text(encoding="utf-8")
     edition = re.search(r"^Status: (.+)$", spec, re.M)
     body, toc = render(spec)
-    body = strip_leading(body, None)
+    body = strip_contents(body)
     (OUT / "index.html").write_text(PAGE.format(
         title="XPRS specification",
         desc=("The XPRS packet format: 250-byte key:value packets carrying "
@@ -223,7 +239,6 @@ def main():
 
     api = (ROOT / "API-HTTP.md").read_text(encoding="utf-8")
     abody, atoc = render(api)
-    abody = strip_leading(abody, None)
     (OUT / "api-http.html").write_text(PAGE.format(
         title="XPRS station HTTP API",
         desc=("The HTTP interface an XPRS station offers on its local network: "
