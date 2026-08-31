@@ -103,8 +103,10 @@ a, code { overflow-wrap: anywhere; }
         display: grid; grid-template-columns: 1fr; gap: 2rem; }
 /* The contents column appears only when there is room for it beside the
    text; below that width it is a collapsed block above the document. */
+.lede { max-width: 44rem; }
 @media (min-width: 62rem) {
   .page { grid-template-columns: 15rem minmax(0, 1fr); }
+  .lede { grid-column: 1 / -1; }
   .toc { position: sticky; top: 1.5rem; align-self: start;
          max-height: calc(100vh - 3rem); overflow-y: auto; }
 }
@@ -116,8 +118,7 @@ h1 { font-family: 'Courier New', monospace; font-size: 2.1rem;
 .meta a { margin-right: 0.9rem; white-space: nowrap; }
 main h1 { font-size: 1.5rem; margin: 3rem 0 0.8rem; padding-top: 1.4rem;
      border-top: 3px double var(--line); }
-main > h1:first-child { font-size: 2.1rem; border-top: 0;
-     margin-top: 0; padding-top: 0; }
+main h1:first-child { margin-top: 0; }
 h2 { font-family: 'Courier New', monospace; font-size: 1.15rem;
      margin: 2.4rem 0 0.8rem; padding-top: 1.2rem;
      border-top: 1px solid var(--line); scroll-margin-top: 1rem; }
@@ -178,11 +179,13 @@ PAGE = """<!doctype html>
 </head>
 <body>
 <div class="page">
-{nav}
-<main>
+<header class="lede">
 <h1>{h1}</h1>
 <div class="tagline">{tagline}</div>
-{meta_html}{body}
+{meta_html}{lede}</header>
+{nav}
+<main>
+{body}
 <footer>{footer}</footer>
 </main>
 </div>
@@ -225,6 +228,9 @@ def main():
     spec = (ROOT / "XPRS.md").read_text(encoding="utf-8")
     body, toc = render(spec)
     body = strip_contents(body)
+    cut = body.index('<h1 id="part-i-foundations">')
+    lede, body = body[:cut], body[cut:]
+    lede = re.sub(r"<hr ?/?>\s*$", "", lede)
     (OUT / "index.html").write_text(PAGE.format(
         title="XPRS specification",
         desc=("The XPRS packet format: 250-byte key:value packets carrying "
@@ -235,6 +241,7 @@ def main():
         h1="XPRS",
         tagline="eXtended Packet Radio System &mdash; protocol specification",
         meta_html="",
+        lede=lede,
         body=body,
         footer=("Copyright (c) 2026 Max Brito. Licensed CC BY 4.0. "
                 "This page is generated from XPRS.md in "
@@ -256,6 +263,7 @@ def main():
                    '<a href="./">specification</a>'
                    '<a href="https://github.com/xprs-dev/spec">repository</a>'
                    '</div>'),
+        lede="",
         body=abody,
         footer=("Copyright (c) 2026 Max Brito. Licensed CC BY 4.0. "
                 "Generated from API-HTTP.md."),
