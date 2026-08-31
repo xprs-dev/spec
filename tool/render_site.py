@@ -61,7 +61,10 @@ def nav(toc, current):
     out = ['<nav class="toc" aria-label="Contents"><details open>',
            "<summary>Contents</summary><ul>"]
     for level, s, text in toc:
-        if level > 3:
+        # The document carries its own contents list, which is the navigation
+        # on a narrow screen. In this column it would be an entry pointing at
+        # a copy of this column.
+        if level > 3 or text.strip().lower() == "contents":
             continue
         out.append(f'<li class="l{level}"><a href="#{s}">{html.escape(text)}</a></li>')
     out.append("</ul></details></nav>")
@@ -93,14 +96,13 @@ body {
   .page { grid-template-columns: 15rem minmax(0, 1fr); }
   .toc { position: sticky; top: 1.5rem; align-self: start;
          max-height: calc(100vh - 3rem); overflow-y: auto; }
-  .toc details { }
 }
 main { max-width: 44rem; min-width: 0; }
 h1 { font-family: 'Courier New', monospace; font-size: 2.1rem;
      letter-spacing: 0.04em; margin-bottom: 0.4rem; }
 .tagline { color: var(--dim); margin-bottom: 0.4rem; }
 .meta { color: var(--dim); font-size: 0.9rem; margin-bottom: 2rem; }
-.meta a { margin-right: 0.9rem; }
+.meta a { margin-right: 0.9rem; white-space: nowrap; }
 h2 { font-family: 'Courier New', monospace; font-size: 1.15rem;
      margin: 2.4rem 0 0.8rem; padding-top: 1.2rem;
      border-top: 1px solid var(--line); scroll-margin-top: 1rem; }
