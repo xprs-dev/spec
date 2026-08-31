@@ -172,8 +172,7 @@ PAGE = """<!doctype html>
 <main>
 <h1>{h1}</h1>
 <div class="tagline">{tagline}</div>
-<div class="meta">{meta}</div>
-{body}
+{meta_html}{body}
 <footer>{footer}</footer>
 </main>
 </div>
@@ -214,7 +213,6 @@ def main():
     OUT.mkdir()
 
     spec = (ROOT / "XPRS.md").read_text(encoding="utf-8")
-    edition = re.search(r"^Status: (.+)$", spec, re.M)
     body, toc = render(spec)
     body = strip_contents(body)
     (OUT / "index.html").write_text(PAGE.format(
@@ -226,12 +224,7 @@ def main():
         nav=nav(toc, "spec"),
         h1="XPRS",
         tagline="eXtended Packet Radio System &mdash; protocol specification",
-        meta=(f"{html.escape(edition.group(1)) if edition else ''} &middot; "
-              'CC BY 4.0 &middot; '
-              '<a href="/">xprs.dev</a>'
-              '<a href="api-http.html">station HTTP API</a>'
-              '<a href="xprs_corpus.json">conformance corpus</a>'
-              '<a href="https://github.com/xprs-dev/spec">repository</a>'),
+        meta_html="",
         body=body,
         footer=("Copyright (c) 2026 Max Brito. Licensed CC BY 4.0. "
                 "This page is generated from XPRS.md in "
@@ -249,9 +242,10 @@ def main():
         nav=nav(atoc, "api"),
         h1="Station HTTP API",
         tagline="A convenience interface on the local network, not the protocol",
-        meta=('<a href="/">xprs.dev</a>'
-              '<a href="./">specification</a>'
-              '<a href="https://github.com/xprs-dev/spec">repository</a>'),
+        meta_html=('<div class="meta"><a href="/">xprs.dev</a>'
+                   '<a href="./">specification</a>'
+                   '<a href="https://github.com/xprs-dev/spec">repository</a>'
+                   '</div>'),
         body=abody,
         footer=("Copyright (c) 2026 Max Brito. Licensed CC BY 4.0. "
                 "Generated from API-HTTP.md."),
