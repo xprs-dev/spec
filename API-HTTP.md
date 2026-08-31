@@ -137,6 +137,42 @@ that callsign. This is the question a returning station asks first, and the
 question an operator asks when deciding whether the mailbox is doing its
 job.
 
+### GET /api/xprs/devices
+
+Who is in reach: the stations heard recently, which is what a station's own
+screen shows and what a visitor on its hotspot most wants to know.
+
+- No parameters. The window is the station's own -- the reference ESP32
+  uses 300 seconds, the same one its Reachable panel uses.
+
+```json
+{"ok":true,"heard":1843,"count":2,"devices":[
+  {"call":"X1QZ3N","bearer":"lora","rssi":-92,"dist_m":84,"hops":0,"age_s":14},
+  {"call":"X1MB7K","bearer":"lan","rssi":0,"dist_m":-1,"hops":0,"age_s":62}]}
+```
+
+`heard` counts every packet since boot. `rssi` is 0 where the bearer has
+none, and `dist_m` is then -1. Where there is a signal, `dist_m` is an
+estimate from it and nothing better: a log-distance model knows nothing
+about the wall in the way. `hops` is the `via:` length when last heard, so
+0 is a neighbour and 1 is somebody a relay carried.
+
+### GET /api/stats
+
+Traffic over time: the three series a station charts for itself.
+
+- `view` -- 0 ten-minute buckets, 1 hourly, 2 daily. Default 0.
+
+```json
+{"ok":true,"view":0,"bucket_s":600,"points":24,
+ "devices":[2,3,1],"rx":[41,50,12],"tx":[3,9,0]}
+```
+
+Oldest bucket first, `points` entries in each array. A station that has no
+wall clock has nothing to bucket by and answers `points":0` with empty
+arrays -- it is not an error, and the caller should say so rather than draw
+a flat line.
+
 ### POST /api/xprs/send
 
 Hand the station a finished packet to transmit. The body is the packet
@@ -190,13 +226,13 @@ they follow this document. Current extras:
   `GET /api/xprs/key`.
 - ESP32 config share: `GET /` (editor page), `GET/POST /config.ini`,
   `GET /log.txt` (the raw rotating log, newest first).
-- Aurora: `POST /api/xprs/ask` (compose and air a signed `cmd:history` at
+- The XPRS application: `POST /api/xprs/ask` (compose and air a signed `cmd:history` at
   another station), `POST /api/xprs/mailbox` (declare favourite indexers),
   and its application-specific surface.
 
 ## Compatibility today
 
-| Endpoint | Aurora | xprs-firmware | Note |
+| Endpoint | The application | xprs-firmware | Note |
 |---|---|---|---|
 | GET /api/status | yes (own shape) | yes | shared keys: app, callsign |
 | GET /api/services | no | yes | Aurora should adopt |
