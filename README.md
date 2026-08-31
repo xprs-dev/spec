@@ -9,6 +9,11 @@ The specification is [XPRS.md](XPRS.md); every section is linkable, as
 [XPRS.md#3-callsigns](XPRS.md#3-callsigns). [API-HTTP.md](API-HTTP.md)
 specifies the HTTP interface stations offer on their LAN.
 
+Rendered: <https://xprs.dev/spec> for the specification,
+<https://xprs.dev/spec/api-http.html> for the HTTP API. Both are generated
+from the Markdown here on every push and keep the same anchors, so
+`XPRS.md#3-callsigns` and `xprs.dev/spec/#3-callsigns` are the same place.
+
 The conformance corpus is [xprs_corpus.json](xprs_corpus.json): every worked
 example in the document as a wire with its byte count and derived identifier
 -- an implementation that replays all of them byte-exact and

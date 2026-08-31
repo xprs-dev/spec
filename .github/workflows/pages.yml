@@ -1,0 +1,50 @@
+name: publish the specification
+
+# Publishes xprs.dev/spec: XPRS.md and API-HTTP.md rendered to HTML by
+# tool/render_site.py, plus the corpus and the source Markdown.
+#
+# The HTML is built here and never committed. Anchors follow GitHub's slug
+# rules, so links written against the file on GitHub (XPRS.md#3-callsigns)
+# resolve on the published page.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'XPRS.md'
+      - 'API-HTTP.md'
+      - 'xprs_corpus.json'
+      - 'LICENSE'
+      - 'NOTICE'
+      - 'tool/render_site.py'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'markdown==3.10.2'
+      - run: python3 tool/render_site.py
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

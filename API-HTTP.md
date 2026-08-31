@@ -12,8 +12,8 @@ everything is an ordinary packet. The HTTP API exists for people and tools on
 the same network: browsing what a station heard, reading its log, handing it
 a packet to transmit. Nothing here adds vocabulary to the protocol.
 
-Reference implementations: the Aurora application (desktop and phone) and the
-xprs-firmware boards. Where they differ today, the table at the end says which
+Reference implementations: the XPRS application (desktop and phone) and the
+XPRS station firmware. Where they differ today, the table at the end says which
 side has to move.
 
 ## General rules
