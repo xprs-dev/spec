@@ -15,7 +15,7 @@ example in the document as a wire with its byte count and derived identifier
 identifier-exact reads the format.
 
 Reference implementations:
-[xprs-flutter](https://github.com/xprs-dev/xprs-flutter) for phones and
+[app](https://github.com/xprs-dev/app) for phones and
 desktops, [xprs-firmware](https://github.com/xprs-dev/firmware) for boards,
 [reticulum-dart](https://github.com/xprs-dev/reticulum-dart) for the shared
 networking library, and [wapps](https://github.com/xprs-dev/wapps) for the
