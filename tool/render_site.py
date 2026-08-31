@@ -84,10 +84,20 @@ CSS = """
   }
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
 body {
   background: var(--bg); color: var(--ink);
   font: 17px/1.6 Georgia, 'Times New Roman', serif;
   padding: 0 1.2rem;
+  overflow-wrap: break-word;
+}
+/* A URL, a callsign run or an inline wire is the widest thing in the text;
+   on a phone it must break rather than widen the page. */
+a, code { overflow-wrap: anywhere; }
+@media (max-width: 30rem) {
+  body { font-size: 16px; padding: 0 0.85rem; }
+  .page { padding-top: 1.4rem; }
+  pre { font-size: 12px; padding: 0.6rem 0.7rem; }
 }
 .page { max-width: 64rem; margin: 0 auto; padding: 2.5rem 0 5rem;
         display: grid; grid-template-columns: 1fr; gap: 2rem; }
