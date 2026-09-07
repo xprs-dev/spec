@@ -4889,6 +4889,38 @@ archiver that cannot take new mail without touching class 3 refuses out loud
 instead, `code:429` and, when it can, `m:try` naming a peer with room (section
 30.3).
 
+### 12.11.1 When the FILE store is full
+
+An archiver that hosts content-addressed files (section 12.9.2, `serve:files`,
+`cmd:put`) keeps a SECOND store, the bytes behind `file:` references, with its
+own budget and its own eviction. A quota policy that mentions only the packet
+spool has skipped the store where the bytes actually are: a picture is
+kilobytes to megabytes, a packet is at most 250. The order mirrors section
+12.11's classes, read off how the bytes came to be held:
+
+1. **Cached bytes** a station fetched for its own reading and re-seeds as a
+   convenience: the cheapest to lose, because the reference that names them is
+   still resolvable from any other holder (sections 8.1, 12.9.2).
+2. **Deposited bytes** a peer pushed with `cmd:put` and this station accepted as
+   custody: losing one costs a delivery somebody else may still make.
+3. **Declared bytes**: a file whose recipient declared this station as its
+   mailbox (section 9.12), a file the operator pinned, and the station's own
+   content. The last dropped, and inside its `until:` it should not be.
+
+Within a class the least recently served goes first, the read count being the
+signal a packet's `ts:` is, and no file outlives its own `until:`. A host that
+cannot accept a `cmd:put` without touching class 3 refuses it out loud,
+`code:429`, with `m:try` naming a peer with room, exactly as section 12.11
+refuses mail.
+
+**The location index follows the bytes.** A holder advertises the files it keeps
+as signed provider records (sections 12.9.2, 12.9.4); when it evicts a file it
+lets that record expire rather than answering `q:have` for bytes it no longer
+holds. A provider record is soft state with a short `ttl`, refreshed while the
+bytes are held and gone shortly after they are dropped, so the index never
+points at an empty store. A reader redirected to a stale holder falls back to
+the next holder the index names, the same `m:try` list a miss already carries.
+
 ### 12.12 Reaching a callsign from anywhere
 
 Everything above composes into one sentence: **a message handed to any archiver,
