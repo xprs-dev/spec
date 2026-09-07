@@ -2073,6 +2073,48 @@ The SHA-256 remains the identity throughout. The infohash addresses a swarm;
 whatever the swarm delivers is verified against `file:` like bytes from any
 other source, and fails like them if it lies.
 
+### 7.7.6 A small binary over the packet lane
+
+Section 7.7.4 puts a file inline with `b:` split by `n:X/Y`, and that grammar
+allows at most nine parts (section 4.3, a ratio is 1..9), so it tops out at 896
+bytes. That is enough for a thumbnail or a key and not for a meme. Yet the case
+that needs it most is real: a shared transport carries directed messages and
+identity announces and DROPS the bulk lane, a public Reticulum hub that
+cross-forwards text between its clients but not a binary link or resource
+(section 12.12.1). The GATT/resource byte lane never completes there, and a
+small image has one vehicle left, the packet itself.
+
+For a file above 896 bytes and up to a small cap, chunk the RAW bytes by offset
+across ordinary `t:file` packets:
+
+```
+t:file f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:40 file:Uc3nRw8kFa5xPd1qGz7mYb0tJe6vHs2iLoA9XfCqK4E.png size:5000 off:0 b:iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8z9A
+```
+
+`off:` is the byte offset the chunk begins at, the same field `cmd:file` resume
+already uses (section 11.2); `b:` is base64url of the raw chunk; `size:` is the
+whole length, repeated on every packet so any one identifies the transfer. Each
+packet carries the largest chunk that keeps it inside 250 bytes. The receiver
+places each chunk at its offset and, once every byte of `size:` is present,
+decodes nothing further, hashes the assembled bytes and compares against
+`file:`.
+
+The integrity is the whole-file hash and nothing else, the rule section 7.7.4
+already states at this size: a wrong or forged chunk simply makes the assembled
+sha not match, and the file is discarded whole. There is no per-chunk
+signature, because signing hundreds of tiny packets would cost more than the
+transfer and buy nothing the content hash does not already give, and a missing
+chunk is re-requested with `cmd:file off:`, exactly as a dead bulk transfer
+resumes. A receiver bounds both the file size it will assemble and the number
+of transfers it will buffer, so a peer that announces a large `size:` and never
+completes it cannot grow memory without bound.
+
+This lane is for SMALL binaries only, a firm cap in the low tens of kilobytes,
+and it never mixes with the bulk lane: a file is fetched with `cmd:file` where a
+link exists, and packetised this way only where one does not. A meme at a few
+hundred packets over a hub that would otherwise pass nothing binary is the whole
+point; a video is section 7.7's business and stays there.
+
 ---
 
 ## 8. Asking and answering
