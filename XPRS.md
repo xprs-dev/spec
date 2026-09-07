@@ -3467,6 +3467,20 @@ the station's budget is refused here with `m:` saying so, which is what
 `size:` on the description exists to prevent. `429`, over budget this hour,
 with alternates in `m:` when the station knows any (section 22.2).
 
+**The hash is public, the bytes are not.** A `file:` reference may be shared,
+indexed and asked after (`q:have`) freely, so anyone may learn who holds a
+file. Serving the bytes is a separate decision. A `cmd:file` MUST carry the
+requester's `f:` and a `sig:`, and a holder serves a PRIVATE file only to a
+caller whose signature verifies as a callsign in the file's audience, the
+audience of the message that shared it. A public post reaches everyone, so its
+file is served to anyone; a closed group's file is served to a current member,
+the membership that already gates posting (section 26.7); a 1:1 message's file
+is served to either participant. An unsigned or unauthorised ask for a private
+file is refused `403`, exactly as a too-large one is, so the caller does not
+retry. A file's reach is thus the reach of the words that carried it: a picture
+posted to a group is no more fetchable than a message posted to it, and an
+unbound bare hash (a pinned artifact, a public release) is open by default.
+
 **`cmd:put` is the same exchange in reverse: I hold these bytes, take them.**
 
 ```
@@ -4583,6 +4597,24 @@ holds the announcement that names the file, the file store holds the bytes it
 points to. Admission still follows section 34.3, not the swarm. The directory
 file of section 12.9 is itself served this way, the arrangement eating its own
 cooking.
+
+**Finding the bytes across the network.** `q:have` is answered by whoever
+hears it, which is a neighbourhood. The wider question, where a file can be
+found when no holder is in earshot, is answered by the same federation that
+routes callsigns (section 12.9). A holder advertises each file it keeps as a
+signed provider record, the hash then the holder, verifiable against the
+holder's key like every other claim; large archivers exchange those records
+among themselves the way they exchange the callsign directory, so a hash
+learned anywhere resolves to a holder somewhere. A `q:have` an archiver cannot
+answer from its own store it answers from that index, naming holders in
+`m:try` the way a `cmd:history` miss names them. Small archivers do not carry
+the whole index: they report the hashes they hold UPWARD to the large
+archivers they chose, on the same push that carries their publications
+(section 12.3), and pull a resolution back when a duty needs one. No archiver
+holds every file and none holds the whole index; each vouches only for the
+bytes it kept and the records it signed, which is the seeder-and-tracker split
+a BitTorrent swarm makes, done with signed claims instead of a central
+tracker.
 
 ### 12.9.3 Neighbours: redundancy for an area
 
