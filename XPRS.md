@@ -5054,6 +5054,29 @@ that applied to one exchange:
   included: the declaration rule (section 12.3) guards MAIL, and presence is not
   mail.
 
+**A shared transport meters announcements, and mutes rather than warns.** A
+transport node admits a bounded rate of announcements per interface and, past a
+grace, queues a violator's announcements for hours behind everyone else's, with
+no error to either end. A station that announces on every reconnect, every
+restart and every operator poke therefore stops being heard while every part of
+it reports success; measured on the bench, two phones on the same four hubs
+with mutual paths could not learn each other's address after such a burst. So a
+station MUST NOT announce more often than the transport's grace allows: the
+periodic re-announce is the paced one, and a request to announce inside that
+window collapses into it rather than adding to it.
+
+**The well-placed station forwards for its neighbours.** A station on mains
+power with a fixed link, the home server of section 30.3 rather than the phone
+or the dongle, SHOULD act as a transport node: it rebroadcasts the announcements
+it hears on its edge bearers into the shared transport and offers a hub on its
+own LAN, so the stations around it reach the internet through one connection
+under one announce budget instead of each dialling a stranger's hub and each
+being metered there. Traffic between two stations on that LAN then never
+touches a public hub at all. A pocket device on battery or cellular is never
+volunteered as one, and the promotion ends when the charger does. The hub
+listens on the LAN it is on and nowhere else: from another network it is
+reached, as before, only because it dialled out.
+
 **And still no inbound ports.** Nothing here opens a listener: every reach across
 the internet is an outbound dial, and a directed message crosses two NATs because
 the transport routes it, not because either end is reachable. A deployment
