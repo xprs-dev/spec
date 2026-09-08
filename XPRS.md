@@ -1914,6 +1914,12 @@ pair's bearers will carry:
 | up to the low tens of kilobytes | chunked by offset across ordinary `t:file` packets, no link, the receiver's `have:` map bringing what was lost | 7.7.6 |
 | anything | the bulk lane: `cmd:file` and its `t:result` bracket the transfer, a bearer's own byte protocol moves the bytes in the middle | 11.2, 11.2.2 |
 
+A file shared in a conversation is where those three meet, and 7.7.7 writes
+that case down whole: the reference beside the caption rather than inside it,
+`size:` so the receiver can decline, a preview plus a `t:file` description
+where the original is too large for the lane that reaches the far station, and
+when a station may fetch without being asked.
+
 The second exists for the bearer that carries packets and nothing else: a
 shared internet transport that forwards directed messages and drops a link, a
 radio too small for a session. The third is the one to want wherever a link
@@ -2146,6 +2152,88 @@ and it never mixes with the bulk lane: a file is fetched with `cmd:file` where a
 link exists, and packetised this way only where one does not. A meme at a few
 hundred packets over a hub that would otherwise pass nothing binary is the whole
 point; a video is section 7.7's business and stays there.
+
+### 7.7.7 A file in a conversation
+
+A picture shared in a conversation is the ordinary case of everything above,
+and it is worth writing down as one thing, because three sections meet in it.
+
+**The reference is a field, not caption text.** `file:` sits in the packet
+beside `m:`, never inside it:
+
+```
+143  t:message f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:40 file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg size:23kB m:the antenna after the storm
+```
+
+That placement is what lets a sealed 1:1 (section 9.2) carry an attachment at
+all: the caption goes into `x:` and the reference does not. A hash is public
+information in this format already, since section 11.2 gates the BYTES and
+never the reference, so nothing is given away by leaving it in the clear that
+was not given away by asking a stranger for the file.
+
+Only `m:` splits (section 7.6). A caption long enough to need parts repeats
+`file:` on every one, so any single part identifies the attachment.
+
+**`size:` SHOULD accompany `file:` on a message.** It is the same field for the
+same reason as in 7.7.1: it is what lets the receiving station decline
+politely. Without it a receiver either fetches blind or does nothing, and the
+first of those is how a shared radio gets jammed by a video nobody asked for.
+`name:` follows where the packet has room for it.
+
+**A picture larger than the packet lane travels twice.** The lane that crosses
+a public hub (7.7.6) tops out in the low tens of kilobytes, and a photograph
+from a telephone is megabytes. A sender with a link may simply share the
+original; where the far station is reachable only through a hub that forwards
+packets and nothing else, the original would never arrive and the conversation
+would show a grey box. So the message carries a small preview of the picture,
+which the packet lane can carry anywhere, and a companion `t:file` describes
+the original:
+
+```
+143  t:file f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:41 r:399227 file:Uc3nRw8kFa5xPd1qGz7mYb0tJe6vHs2iLoA9XfCqK4E.jpg size:3.1MB name:storm-antenna.jpg
+```
+
+`r:` names the message the description belongs to (section 5), which is the
+same relationship a reply or a receipt uses. The receiver renders the preview
+immediately and knows, from the companion, that a 3.1 MB original exists and
+what it is called. Nothing new is invented for this: a preview is a file, the
+description is `t:file`, and the link between them is `r:`.
+
+A preview is a courtesy, not a requirement. A file already small enough for the
+packet lane travels as itself, with one `file:` and no companion, and a station
+that makes no previews shares the original and nothing else.
+
+**Asking for the bytes.** A receiver holding a reference and none of the
+content asks the sender with `cmd:file` (section 11.2). Over the packet lane
+the ask carries a `have:` map, and a receiver holding nothing sends a map of
+zeroes, which means "send everything":
+
+```
+185  t:command f:X1RD89 d:X1QZ3N ts:2026-08-08_14:27:12 cmd:file file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg have:AA sig:<60 characters>
+```
+
+**When to fetch without being asked.** Bytes that arrive unbidden are bytes
+somebody else's transfer did not get, so the rule is about the bearer and not
+about the file:
+
+- A file the packet lane can carry (7.7.6's cap, previews included) may be
+  fetched on sight. It is a few hundred small packets, it is what the lane
+  exists for, and the alternative is a conversation of grey boxes.
+- A larger file may be fetched automatically only where a link exists that can
+  carry it: another station on the same local network, or a Reticulum path over
+  a transport that is not a shared radio. Within whatever ceiling the operator
+  set, and no further.
+- On a shared radio, BLE, LoRa, or anything where one transmission occupies the
+  channel for everybody, a large file is fetched only when a person asks for
+  it. Ten megabytes on a link like that is not a download, it is an outage for
+  every other station in earshot (section 30).
+
+A non-image obeys the same rules with no preview to soften them, so `size:` and
+`name:` are the whole of what the receiver has to judge by:
+
+```
+157  t:message f:X1QZ3N d:LISBOA ts:2026-08-08_14:26:40 file:Uc3nRw8kFa5xPd1qGz7mYb0tJe6vHs2iLoA9XfCqK4E.pdf size:480kB name:mast-plan.pdf m:the plan for the mast
+```
 
 ---
 
@@ -8662,11 +8750,12 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `t:service` | not implemented; no station advertises what it does |
 | `t:command` and `t:result` | **implemented** for `cmd:history`: the phone and desktop host answer a command addressed to them with signed results (`lib/services/xprs/xprs_history_server.dart`); no other command is acted on yet |
 | `cmd:history`, backfill by replay | **implemented**: every device keeps a spool by default (500 MB or a year, the owner's numbers per section 30.3) and re-airs the original packets newest first on request, `code:202`, the page, then `code:200` or `code:206`, metered per section 22.2 and paced for the advert channel |
-| `cmd:file`, fetching bytes by hash | **specified** (with `off:` resume and concrete reply codes, section 33.2), not implemented as a command; the resolution ladder underneath it is built and works (Reticulum direct, DHT, LAN, I2P, BitTorrent, `reticulum-dart/doc/file-sharing.md`), so this is an ask the format lacked rather than a transport it lacks |
+| `cmd:file`, fetching bytes by hash | **implemented**: a station answers a signed `cmd:file` for any hash it holds, gated by the audience the reference was shared with (`lib/services/xprs/xprs_file_server.dart`, `xprs_file_acl.dart`), re-sending only what a `have:` map lacks over the packet lane and bracketing the bulk lane with `t:result`; the resolution ladder underneath it (Reticulum direct, DHT, LAN, I2P, BitTorrent) is what the fetcher falls back to when no station answers |
 | `cmd:put`, depositing bytes | **specified, not implemented** as a command; the machinery exists as the Reticulum deposit session (`FileDepositSession`) and the MSP bulk lane's accept-at-size handshake, what is missing is the XPRS ask in front of them |
 | `q:have` / `s:have`, who holds a file | implemented: a holder answers `have:full` from its store, a miss names other holders from the sources index; the mid-transfer `have:` map of 7.7.6 rides `cmd:file` |
 | Listings (`XFL1`), folders as snapshots | **specified, not implemented** in this format; the shipped folders lane keeps piece hashes as a headerless binary blob and syncs live folders by signed op-log, the XFL1 text listing is the packet-layer snapshot form |
 | Inline files in `b:` | 7.7.6 implemented: chunks by offset as datagrams, the receiver's `have:` map, the holder's re-send of the gaps; the 7.7.4 nine-part `n:X/Y` split of `b:` is **specified, not implemented** |
+| A file in a conversation (7.7.7) | **implemented**: the reference is lifted out of the caption into `file:` with `size:` and `name:`, a picture too large for the packet lane travels as a preview plus a `t:file r:` describing the original, and automatic fetching is by bearer -- packet-lane sized on sight, larger only where a link that is not a shared radio can carry it |
 | Deterministic torrents, `ih:` derivable | **implemented** (`lib/services/torrent_service.dart` builds byte-identical torrents from content, so every holder derives one infohash) |
 | `serve:archive` | **implemented**: the spool is on by default and the discovery beacon says so; turning the preference off drops the claim and the answers together |
 | Section 13.4, one port for Reticulum and XPRS | **implemented** on the TCP hub listener: port 4242 answers HDLC-framed Reticulum and line-oriented XPRS on one socket, told apart by the first byte |
