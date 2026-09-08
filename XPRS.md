@@ -551,7 +551,7 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `count` | `int` | on `t:file kind:folder`, how many files a listing holds (7.7.3); on an archiver's `serve:archive` announcement, how many RECORDS it holds, never how many callsigns (13.0.1) |
 | `b` | `b64` | a small file's bytes, inline (section 7.7.4) |
 | `ih` | `label` | BitTorrent infohash, 40 hexadecimal characters (section 7.7.5) |
-| `have` | `label` | what a station holds of a file: `full`, a bitfield, or a fraction (section 8.1) |
+| `have` | `b64` | what a station holds of a file: a chunk or piece bitfield, least significant bit first; or, the two stated exceptions, the word `full` and a fraction such as `412/900` (section 8.1) |
 | `off` | `qty` | byte offset a `cmd:file` transfer resumes from (section 33.2) |
 | `x` | `b64` | sealed body |
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
@@ -2093,9 +2093,12 @@ t:file f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:40 file:Uc3nRw8kFa5xPd1qGz7mYb0tJe6
 
 `off:` is the byte offset the chunk begins at, the same field `cmd:file` resume
 already uses (section 11.2); `b:` is base64url of the raw chunk; `size:` is the
-whole length, repeated on every packet so any one identifies the transfer. Each
-packet carries the largest chunk that keeps it inside 250 bytes. The receiver
-places each chunk at its offset and, once every byte of `size:` is present,
+whole length, repeated on every packet so any one identifies the transfer. Every
+chunk but the last has the same length: the largest multiple of three bytes
+whose packet, with `off:` written as the file size, still fits 250. So chunk k
+begins at k times that length, and any full chunk tells a receiver the grid.
+The receiver places each chunk at its offset and, once every byte of `size:`
+is present,
 decodes nothing further, hashes the assembled bytes and compares against
 `file:`.
 
@@ -2103,10 +2106,25 @@ The integrity is the whole-file hash and nothing else, the rule section 7.7.4
 already states at this size: a wrong or forged chunk simply makes the assembled
 sha not match, and the file is discarded whole. There is no per-chunk
 signature, because signing hundreds of tiny packets would cost more than the
-transfer and buy nothing the content hash does not already give, and a missing
-chunk is re-requested with `cmd:file off:`, exactly as a dead bulk transfer
-resumes. A receiver bounds both the file size it will assemble and the number
-of transfers it will buffer, so a peer that announces a large `size:` and never
+transfer and buy nothing the content hash does not already give. Nor is there
+an acknowledgement per chunk: the sender sends them all, paced, and waits for
+nothing. What is missing is the receiver's to say. Chunks arrive tens of
+milliseconds apart when they arrive at all, so a few seconds without one is a
+lost packet, not a slow one, and the receiver then asks with `cmd:file`
+carrying `have:`, its chunk map in section 8.1's form, bit k for chunk k:
+
+```
+193  t:command f:X1RD89 d:X1QZ3N ts:2026-08-08_14:27:12 cmd:file file:Uc3nRw8kFa5xPd1qGz7mYb0tJe6vHs2iLoA9XfCqK4E.png have:-_3_____Hw sig:<60 characters>
+```
+
+The holder re-sends only what the map lacks, as plain chunks again, and
+answers `202`, or `200` when the map is already whole, or `404` when it no
+longer has the bytes, which tells the receiver to stop. The asks back off and
+stop on their own, so a sender that is gone is not asked forever. A whole map
+of the largest file this lane allows is under sixty characters; `off:` alone
+still resumes from an offset, exactly as a dead bulk transfer resumes. A
+receiver bounds both the file size it will assemble and the number of
+transfers it will buffer, so a peer that announces a large `size:` and never
 completes it cannot grow memory without bound.
 
 This lane is for SMALL binaries only, a firm cap in the low tens of kilobytes,
@@ -2182,6 +2200,8 @@ serve at all:
 t:receipt f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:40 s:no
 ```
 
+55 bytes.
+
 ### 8.1 Who holds a file
 
 `q:have` with a `file:` reference asks who holds those bytes. Broadcast, it is
@@ -2211,8 +2231,6 @@ would cost more than the answer is worth, and silence already says it
 This is the radio's version of the claim a provider record makes on an
 internet overlay: the same "I hold it", scoped to whoever can actually hear
 the speaker, which for a fetch over the street is the right scope.
-
-55 bytes.
 
 Any station may act on a receipt it overhears. A station holding a message for
 later delivery discards its copy on hearing the matching `s:ack` **whose
@@ -5082,7 +5100,11 @@ station that takes this role MUST NOT re-air the shared transport's
 announcement traffic onto a constrained bearer such as a radio others are
 sharing: it carries what it hears onward on the bearers that can afford it, and
 lifts its own radio neighbours up into the transport, but the flood stops at
-the edge of the wire that would drown in it.
+the edge of the wire that would drown in it. Two more copies are never made: a
+relayed announcement is not broadcast onto a bearer with nobody on it, since it
+discovers nothing and comes straight back; and it is not carried from one
+shared transport to another by a station that is merely a client of both,
+since they hold the same flood already and the client pays for every copy.
 
 **Answering for others is what makes a transport node one.** A station that
 only forwards is a wire; a transport node also replies when a neighbour asks
@@ -7875,7 +7897,7 @@ packet **250 bytes**, on every transport.
 | `count` | `int` | on `t:file kind:folder`, how many files a listing holds (7.7.3); on an archiver's `serve:archive` announcement, how many RECORDS it holds, never how many callsigns (13.0.1) |
 | `b` | `b64` | a small file's bytes, inline (section 7.7.4) |
 | `ih` | `label` | BitTorrent infohash, 40 hexadecimal characters (section 7.7.5) |
-| `have` | `label` | what a station holds of a file: `full`, a bitfield, or a fraction (section 8.1) |
+| `have` | `b64` | what a station holds of a file: a chunk or piece bitfield, least significant bit first; or, the two stated exceptions, the word `full` and a fraction such as `412/900` (section 8.1) |
 | `off` | `qty` | byte offset a `cmd:file` transfer resumes from (section 33.2) |
 | `x` | `b64` | sealed body |
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
@@ -8484,7 +8506,8 @@ Assigned keys: `t`, `f`, `d`, `ts`, `tz`, `q`, `s`, `r`, `n`, `via`, `track`,
 `since`, `until`, `pos`, `alt`, `acc`, `spd`, `dir`, `o`, `climb`, `temp`,
 `hum`, `intemp`, `inhum`, `wave`, `swell`, `seatemp`, `vis`, `press`, `wind`,
 `wdir`, `gust`, `rain1`, `rain24`, `solar`, `batt`, `volt`, `rssi`, `snr`,
-`link`, `busy`, `txtime`, `hears`, `peers`, `mail`, `age`, `epoch`.
+`link`, `busy`, `txtime`, `hears`, `peers`, `mail`, `age`, `epoch`, `b`, `ih`,
+`ph`, `name`, `count`, `have`, `off`.
 
 Assigned `q:` and `s:` words: section 28.
 
@@ -8566,9 +8589,9 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `cmd:history`, backfill by replay | **implemented**: every device keeps a spool by default (500 MB or a year, the owner's numbers per section 30.3) and re-airs the original packets newest first on request, `code:202`, the page, then `code:200` or `code:206`, metered per section 22.2 and paced for the advert channel |
 | `cmd:file`, fetching bytes by hash | **specified** (with `off:` resume and concrete reply codes, section 33.2), not implemented as a command; the resolution ladder underneath it is built and works (Reticulum direct, DHT, LAN, I2P, BitTorrent, `reticulum-dart/doc/file-sharing.md`), so this is an ask the format lacked rather than a transport it lacks |
 | `cmd:put`, depositing bytes | **specified, not implemented** as a command; the machinery exists as the Reticulum deposit session (`FileDepositSession`) and the MSP bulk lane's accept-at-size handshake, what is missing is the XPRS ask in front of them |
-| `q:have` / `s:have`, who holds a file | **specified, not implemented**; the internet overlay's equivalent (signed DHT provider records) is live, the radio-side question is not asked yet |
+| `q:have` / `s:have`, who holds a file | implemented: a holder answers `have:full` from its store, a miss names other holders from the sources index; the mid-transfer `have:` map of 7.7.6 rides `cmd:file` |
 | Listings (`XFL1`), folders as snapshots | **specified, not implemented** in this format; the shipped folders lane keeps piece hashes as a headerless binary blob and syncs live folders by signed op-log, the XFL1 text listing is the packet-layer snapshot form |
-| Inline files in `b:` | **specified, not implemented**; nothing splits or reassembles `b:` yet |
+| Inline files in `b:` | 7.7.6 implemented: chunks by offset as datagrams, the receiver's `have:` map, the holder's re-send of the gaps; the 7.7.4 nine-part `n:X/Y` split of `b:` is **specified, not implemented** |
 | Deterministic torrents, `ih:` derivable | **implemented** (`lib/services/torrent_service.dart` builds byte-identical torrents from content, so every holder derives one infohash) |
 | `serve:archive` | **implemented**: the spool is on by default and the discovery beacon says so; turning the preference off drops the claim and the answers together |
 | Section 13.4, one port for Reticulum and XPRS | **implemented** on the TCP hub listener: port 4242 answers HDLC-framed Reticulum and line-oriented XPRS on one socket, told apart by the first byte |
