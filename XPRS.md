@@ -5067,15 +5067,33 @@ window collapses into it rather than adding to it.
 
 **The well-placed station forwards for its neighbours.** A station on mains
 power with a fixed link, the home server of section 30.3 rather than the phone
-or the dongle, SHOULD act as a transport node: it rebroadcasts the announcements
-it hears on its edge bearers into the shared transport and offers a hub on its
-own LAN, so the stations around it reach the internet through one connection
-under one announce budget instead of each dialling a stranger's hub and each
-being metered there. Traffic between two stations on that LAN then never
-touches a public hub at all. A pocket device on battery or cellular is never
-volunteered as one, and the promotion ends when the charger does. The hub
-listens on the LAN it is on and nowhere else: from another network it is
-reached, as before, only because it dialled out.
+or the dongle, SHOULD act as a transport node: it rebroadcasts the
+announcements it hears on its edge bearers into the shared transport, answers
+path requests for the destinations it knows, forwards the traffic addressed
+through it, and offers a hub on its own LAN. The stations around it then reach
+the wider network through one connection under one announce budget, instead of
+each dialling a stranger's hub and each being metered there, and traffic
+between two of them never touches a public hub at all. A pocket device on
+battery or cellular is never volunteered as one, and the promotion ends when
+the charger does.
+
+**Answering for others is what makes a transport node one.** A station that
+only forwards is a wire; a transport node also replies when a neighbour asks
+which way a destination lies, and it replies with the destination's OWN signed
+announcement, replayed, tagged so the asker addresses the destination through
+it. A relayer cannot forge that answer, so it must keep what it heard: this is
+the memory a transport node spends and a leaf does not. The consequence is the
+point of the role — a station that never heard a destination announce can still
+reach it, because the station it is attached to did.
+
+**A station that only dials out forwards for the whole network, not just its
+own room.** Reachability here is not an addressing property: a path is what
+announcements taught, hop by hop, keyed on the destination, and a packet
+travels back along links that are already open. So the stations attached to a
+transport node become reachable from anywhere the node's rebroadcast announcements
+travel, whether or not anything can open a fresh connection to it. What dialling
+decides is only who may start the next connection, never who may be reached
+over the ones that exist.
 
 **And still no inbound ports.** Nothing here opens a listener: every reach across
 the internet is an outbound dial, and a directed message crosses two NATs because
