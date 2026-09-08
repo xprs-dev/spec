@@ -4662,6 +4662,99 @@ messages.
   how much is held without moving any of it, and the holder's `mail:` count
   (section 15.6.5) says the same to everyone in earshot without being asked.
 
+### 12.8.3 The whole loop: what the three stations owe each other
+
+Sections 12.3, 12.7 and 12.8.1 each describe one station's duty. Written apart
+they read as complete, and an implementation can satisfy every one of them and
+still lose the message — which is what happens, so the loop is written here as
+one thing, in the order it runs.
+
+A writes to B. B is asleep. A is a telephone, and goes into a pocket.
+
+1. **A leaves a copy with its archiver.** A directed packet that A originated
+   and that nothing has acknowledged is copied to A's archivers, unchanged and
+   with its signature intact. This is the step whose absence loses the message:
+   a retry ladder on A cannot help, because A is the station that leaves. It is
+   not a relay — `via:` is untouched and the section 13.1 hop budget is not
+   spent — it is the author handing a copy to the station it chose to keep its
+   mail. The wait before depositing is an implementation's own: long enough
+   that a delivery in progress is not duplicated, short enough to happen before
+   the radio is put away.
+
+2. **Any packet, not only a message.** The archiver holds what it is given, and
+   what a station gives it is everything addressed to one station that is worth
+   having later: the message, the `t:file` that describes a picture, the
+   `t:moderate` that adds somebody to a group, the `t:receipt` that closes a
+   loop. Two kinds are excluded, and both for the same reason — they are true
+   only while they are fresh. **Presence** (`t:observation`, `t:identity`,
+   `t:service`, `t:track`, `t:ping`/`t:pong`, `t:status`) says where a station
+   is now; delivered an hour later it is a statement about a moment that has
+   passed. **A live negotiation** — a `cmd:file` carrying the `have:` map of
+   what the asker lacks right now, or the `t:result` answering one — asks for
+   bytes on behalf of somebody who has stopped waiting. `scope:local` is never
+   held at all (13.11.1), and a group has no mailbox (12.8.1).
+
+3. **The archiver delivers when it can reach B**, not only when it hears B.
+   Section 12.8.1's trigger is the packet from B itself, which is the right
+   evidence on a radio. An always-on archiver on the internet mostly never
+   hears its recipients speak: it simply gains a path to them. So a holder
+   also asks, on its own schedule, "who am I holding for, and can I reach any
+   of them now" — and a holder that only ever waits to be spoken to keeps
+   internet mail for ever while the recipient sits online three hops away.
+   Reachability means THIS station: "somebody is on the network" makes every
+   callsign on earth look present, and a holder reading it that way re-airs
+   mail to callsigns that have never existed.
+
+4. **Delivering is relaying, so the holder signs it as one.** `via:` gains the
+   holder's callsign (12.8.1). That costs one field and buys the two things
+   custody needs: the loop check, and — the reason the loop used to hang open —
+   B learns that somebody else is holding a copy.
+
+5. **B's receipt goes to more than A.** A verified `t:receipt` releases every
+   holder that hears it (13.3), and the one station guaranteed not to be
+   listening is A, who is asleep — which is why an archiver had the message at
+   all. So B sends the same signed receipt, unchanged, to:
+   - the stations named in `via:`: they carried it, so they hold it;
+   - the mailboxes A declared with `t:mailbox hold:` (13.12): A deposited
+     there, and those copies will be re-delivered until told otherwise.
+
+   The receipt is never re-addressed on the way. `d:` is inside what the
+   signature covers, and 9.7.1 requires that signature precisely so a stranger
+   cannot delete other people's mail; a holder does not need to be the
+   addressee, because releasing on an OVERHEARD acknowledgement is exactly what
+   13.3 describes.
+
+6. **The receipt is itself mail.** It is addressed to A, who is still away, so
+   the archiver holds it like anything else and delivers it when A returns.
+   Without this the sender never learns the message arrived, and keeps a
+   pending message on screen for a delivery that happened days ago.
+
+7. **A station says where its mailbox is.** None of step 5 works if nobody
+   knows where A's mail is kept, so a station that has archivers declares them
+   with `t:mailbox hold:` (13.12) and re-declares when the list changes. A
+   declaration is signed; an unverifiable one is ignored, because a forged one
+   collects somebody else's mail from every polite sender.
+
+**Choosing the archiver is step zero, and it must not need an operator.**
+Section 12.3 leaves auto-selection optional — "a volunteer advertising
+`serve:archive` that accepts it" — and a station that names none and adopts
+none has nowhere to leave anything, which is the whole failure again with an
+extra step. So a station with no archiver of its own SHOULD adopt one it can
+hear, preferring a volunteer reachable over the internet to one reachable only
+over a radio (leaning on a station you have to stand next to is not leaning),
+and SHOULD KEEP the one it adopted: an archiver re-picked every hour spreads
+one conversation over five stations and none of them holds the whole of it. An
+archiver the operator names explicitly overrides the adopted one, and zero
+archivers stays a valid, private choice (12.3).
+
+**What each station may assume.** A has no guarantee its message was delivered
+until a receipt says so, and no guarantee an archiver kept it. B has no way to
+tell a message that came direct from one that waited a week, and needs none.
+The archiver never learns what it held: the body is sealed (12.7), and what it
+can see — who wrote to whom, and when — is what any station forwarding a packet
+can see. None of the three has to be awake at the same time as another, which
+is the only property that matters.
+
 ### 12.9 Archivers among themselves
 
 **An archiver never accepts content from another archiver.** This keeps a
@@ -8745,8 +8838,8 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `scope:` | not implemented; every bearer currently forwards everything it can |
 | `lang:` | not implemented |
 | `nick:` and signed identity | not implemented; identity is announced unsigned today |
-| `t:mailbox` | **partly implemented**: a receiving station records verified declarations naming it (windows and `remove:mailbox` included, `lib/services/xprs/xprs_archive.dart`) and uses them to gate what the internet lane may deposit in its spool; no station composes one yet, and custody still has no notion of a preferred carrier |
-| Several mailboxes with windows, and cancellation | **implemented on the receiving side** (see `t:mailbox` above); not composed |
+| `t:mailbox` | **implemented**: a receiving station records verified declarations (windows and `remove:mailbox` included, `lib/services/xprs/xprs_archive.dart`), and a station now COMPOSES one naming its own archivers whenever that list changes, which is what lets a recipient send its receipt to the sender's holder (12.8.3); custody consults the declaration when choosing where to hand mail next |
+| Several mailboxes with windows, and cancellation | **implemented on the receiving side** (see `t:mailbox` above); a composer states one open-ended declaration, not several windowed ones |
 | `t:service` | not implemented; no station advertises what it does |
 | `t:command` and `t:result` | **implemented** for `cmd:history`: the phone and desktop host answer a command addressed to them with signed results (`lib/services/xprs/xprs_history_server.dart`); no other command is acted on yet |
 | `cmd:history`, backfill by replay | **implemented**: every device keeps a spool by default (500 MB or a year, the owner's numbers per section 30.3) and re-airs the original packets newest first on request, `code:202`, the page, then `code:200` or `code:206`, metered per section 22.2 and paced for the advert channel |
