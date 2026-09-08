@@ -1901,9 +1901,23 @@ valid whether the file arrives over the same radio, over the internet, or on
 physical media. What THIS document defines is everything around the bytes: how
 a file is described (7.7.1), how a large one is verified in pieces and a folder
 of them is listed (7.7.2), how a whole folder is synchronised (7.7.3), how a
-small one rides the packets themselves (7.7.4), how anyone asks who holds one
-(section 8, `q:have`), and how one is fetched or deposited (section 33.2,
-`cmd:file` and `cmd:put`).
+small one rides the packets themselves (7.7.4, and 7.7.6 for one too big for
+that), how anyone asks who holds one (section 8, `q:have`), and how one is
+fetched or deposited (section 33.2, `cmd:file` and `cmd:put`).
+
+So a file reaches a station one of three ways, chosen by size and by what the
+pair's bearers will carry:
+
+| bytes | the way | where it is defined |
+|---|---|---|
+| up to 896 | inline in the packet, `b:` split by `n:X/Y` | 7.7.4 |
+| up to the low tens of kilobytes | chunked by offset across ordinary `t:file` packets, no link, the receiver's `have:` map bringing what was lost | 7.7.6 |
+| anything | the bulk lane: `cmd:file` and its `t:result` bracket the transfer, a bearer's own byte protocol moves the bytes in the middle | 11.2, 11.2.2 |
+
+The second exists for the bearer that carries packets and nothing else: a
+shared internet transport that forwards directed messages and drops a link, a
+radio too small for a session. The third is the one to want wherever a link
+exists, since the packet grammar is a poor pipe for bulk.
 
 ### 7.7.1 Saying what a file is
 
@@ -5202,6 +5216,67 @@ addressed form while the other stayed silent between the same endpoints.
 The whole of this section reduces to one sentence: **on a transport nobody
 owns, an archiver is not an optimisation of public traffic, it is the
 mechanism.**
+
+### 12.12.3 A station as a transport node
+
+This section is architecture, not vocabulary: nothing in it appears on the
+wire in XPRS terms. It exists because the network XPRS rides across the
+internet, Reticulum, has a role in it that an XPRS station can take, and taking
+it well is what makes sections 12.12.1 and 7.7.6 work in practice. Reticulum
+distinguishes an *instance*, which sends and receives for itself, from a
+*transport node*, which also forwards for others: it re-airs the announcements
+it hears so paths form beyond its neighbours, answers a neighbour's path
+request out of its own table, and carries packets addressed through it hop by
+hop. Reachability in this network is not an addressing property. A path is what
+announcements taught, keyed on the destination; a packet returns over links
+that are already open; and a station that only ever dialled out is a complete
+transport node for everything attached to it. Whether it can be dialled decides
+who may open the *next* connection, never who can be reached.
+
+**Every XPRS station is at least a leaf with an edge bridge.** A phone dials the
+public hubs it knows and, when it has a radio, lifts the announcements of its
+radio neighbours up into the transport, so a Bluetooth-only station a metre
+away becomes reachable from the other side of the world. It does not carry the
+hubs' announcement flood the other way: that radio is shared, and drowning it
+is the one thing the bridge exists to prevent.
+
+**A station on mains power with a fixed link is promoted to a transport node**,
+on the same measure that makes it an always-on archiver (section 12.9.4): the
+home server, the phone on its charger on the household Wi-Fi. Promoted, it
+
+- re-airs announcements from anywhere onto every bearer that can afford them,
+  and still never onto a shared radio;
+- answers path requests for every destination it holds, with the
+  destination's own signed announcement replayed and tagged, so a neighbour
+  that never heard the announcement can address it through this station;
+- forwards what is addressed through it, in both directions;
+- offers a hub on its own LAN, so the stations around it reach the wider
+  network through one connection under one announcement budget instead of each
+  dialling a stranger's hub and each being metered there.
+
+**And four things it never does**, each learned by doing it. It never
+re-uploads an announcement heard on one shared hub to another: the hubs hold
+the same flood already and a client pays for every copy. It never broadcasts a
+relayed announcement onto a bearer with nobody on it: it discovers nothing and
+comes straight back. It never learns from its own frame coming back, since a
+path whose next hop is oneself is not a path. And it never announces faster
+than a hub's grace allows, because a hub mutes an over-announcer for hours and
+says nothing, so a station that re-announces on every reconnect stops being
+heard while every part of it reports success.
+
+**What this buys the packet lane.** Section 7.7.6 sends a file as a stream of
+single packets that never open a link. Such a packet crosses a shared hub
+exactly because a transport node forwards single packets addressed through it,
+and it lands only where a path exists. A promoted station's neighbours have
+paths they never had to learn themselves; and the station itself, answering
+path requests, keeps those paths from expiring into the silence a stream of
+small packets cannot afford. Measured, both phones on public hubs and
+different networks: a 20 kB file in 219 packets in 43 seconds, none lost.
+
+Demotion is the same measure reversed: unplugged, or on cellular, the station
+is a leaf with an edge bridge again, and its LAN hub closes. A pocket device is
+never volunteered as a transport node, however capable, because what the role
+costs is not CPU but a radio and a battery somebody else is relying on.
 
 
 ---
