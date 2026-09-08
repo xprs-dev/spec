@@ -5077,6 +5077,13 @@ between two of them never touches a public hub at all. A pocket device on
 battery or cellular is never volunteered as one, and the promotion ends when
 the charger does.
 
+Forwarding for everybody does NOT mean airing everybody onto every bearer. A
+station that takes this role MUST NOT re-air the shared transport's
+announcement traffic onto a constrained bearer such as a radio others are
+sharing: it carries what it hears onward on the bearers that can afford it, and
+lifts its own radio neighbours up into the transport, but the flood stops at
+the edge of the wire that would drown in it.
+
 **Answering for others is what makes a transport node one.** A station that
 only forwards is a wire; a transport node also replies when a neighbour asks
 which way a destination lies, and it replies with the destination's OWN signed
