@@ -5499,6 +5499,16 @@ t:service f:X3RLY7 pos:38.7810,-9.2043 serve:relay,archive ts:2026-08-08_14:26:4
 | `wifi` | offers network access to people nearby |
 | `other` | something not in this list, described in `m:` |
 
+The set is fixed on purpose, and **a receiver ignores a `serve:` word it does
+not know** rather than dropping the packet or acting on the word. This list is
+what every implementation can act on; anything else belongs in `m:` behind
+`other`. A word one implementation invents is worse than no word: this
+project's app and firmware both aired `serve:archive,super` for a while to mean
+"always on", which no other build could read, while 12.9.4's qualities --
+already on the same beacon, in `count:` and `uptime:` -- said it in a way
+anybody could. Both now air `archive` alone, and an old station's second word
+parses away to nothing.
+
 ### 13.0.1 `count:` on an archiver's announcement
 
 An archiver states how much it is holding:
@@ -8797,7 +8807,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 9.1 relay budget, 9.2 loop check | **implemented** in the codec (`xprsMayRelay`, `xprsWouldLoop`); nothing transmits `via:` yet, so nothing calls them on the air |
 | Section 9.11.3, `scope:local` is never carried | **implemented**; refused at custody admission in `MeshCustodyDelegate` |
 | Section 12.8.1 automated return leg (release on hearing, forward toward gossip) | **implemented** on the Flutter node (funnel-triggered release, `XprsForwarder` with `via:` and the loop check) and in the shared ESP32 app (release-on-hearing off the seen funnel, paced re-air, receipt purge); the T-Dongle keeps its original `blemesh_scf_*` loop. Bench-validated end to end |
-| Section 12.9.4 gossip (layers, budgets, always-on archivers) | **implemented** on the Flutter side (`xprs_gossip.dart`: L2/L3 tables, K/G caps, signer quotas, byte budget, the always-on-archiver mode and the miss-path ask) with DoS-probe unit tests; the shared ESP32 app keeps the need-to-know ring |
+| Section 12.9.4 gossip (layers, budgets, always-on archivers) | **implemented** on the Flutter side (`xprs_gossip.dart`: L2/L3 tables, K/G caps, signer quotas, byte budget, the always-on-archiver mode and the miss-path ask) with DoS-probe unit tests; the shared ESP32 app keeps the need-to-know ring. Always-on is a LOCAL budget setting in both (`index_always_on` on a station, Always on in the app), never announced: each side reads a peer's depth off `count:` and `uptime:` instead, and both stopped airing and parsing `serve:archive,super` in 2026-09 |
 | Section 12.12 reaching a callsign from anywhere | **implemented and bench-validated**: an internet sender on a foreign network reached a WiFi-less BLE-only pocket through deposit, gossip, forward and release-on-hearing, with signatures intact at every hop |
 | Section 12.12.1 constrained internet transports (directed replies, directed asks, deposit, sender-parks-own-mail) | **implemented** on the Flutter side; specified after being proven necessary on public hubs |
 | Section 12.10.2 the poll adapts to what it finds (per-archiver interval, the quiet ladder, the peer's floor, 429 as authority) | **implemented** on the Flutter side, with the ladder as pure functions under unit test; bench-measured 600s down to the 15s floor under load and back up to the ceiling when the room went quiet |
