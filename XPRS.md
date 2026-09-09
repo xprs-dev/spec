@@ -4323,6 +4323,17 @@ stations heard nearby, or anyone, under a quota. Silence is not consent: a
 station holds nothing for strangers until its operator says so (section 22.2),
 and may decline anything offered.
 
+Three settings say it, and one implementation (the XPRS app) names them the way
+a person would: what is **mine** is kept unconditionally; **the people I follow**
+are the middle tier, kept for as long as they are followed, with no quota and no
+expiry; and a **public archiver** additionally keeps strangers' packets within a
+byte cap and a maximum age, and is the only one of the three that puts
+`serve:archive` on the air. A station with the third setting off announces no
+archiver role at all and answers a stranger's `cmd:history` only from its own
+publications — which is the zero-archiver configuration two paragraphs down,
+arrived at from the other side. The follow list itself never leaves the device
+(section 16.2): a peer sees what the station keeps, never for whom.
+
 **The depositor chooses too.** Unlike APRS-IS there is no centre: a station
 keeps its own publications and hands a COPY to the archivers its operator chose
 (section 34.3). No station must name one, and no archiver sees traffic from a
@@ -8791,14 +8802,14 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 12.12.1 constrained internet transports (directed replies, directed asks, deposit, sender-parks-own-mail) | **implemented** on the Flutter side; specified after being proven necessary on public hubs |
 | Section 12.10.2 the poll adapts to what it finds (per-archiver interval, the quiet ladder, the peer's floor, 429 as authority) | **implemented** on the Flutter side, with the ladder as pure functions under unit test; bench-measured 600s down to the 15s floor under load and back up to the ceiling when the room went quiet |
 | Section 11.2.1 a continuation must make progress | specified in this revision after both halves failed on the bench; the asker's half (a stalled resume is not news) is **implemented** on the Flutter side, the responder's `until:` half is not yet |
-| Section 12.9.4 what an always-on archiver must be | specified in this revision, written while planning the ESP32 archiver, where no board yet meets the always-on qualities |
+| Section 12.9.4 what an always-on archiver must be | **implemented as a setting, not a role**: the Flutter app's Always on is a further promise a station opts into, and it can only be made by a station that is already a public archiver. Nothing about it goes on the wire — a peer decides which archivers are worth leaning on from `serve:archive` plus `count:`, `uptime:` and whether the station is addressable off-radio (`xprsLooksAlwaysOn`). The app used to air `serve:archive,super`, a word this vocabulary never had, and now neither airs nor parses it |
 | Section 12.12.2 public traffic across the internet (push to chosen archivers, pull from them, publications past the declaration rule, callsign-to-address resolution) | **implemented and bench-validated**: two phones on different networks, neither hearing the other's broadcasts, exchanged Global chat through one always-on archiver, push arrived in seconds, pull on the metering period |
 | Callsigns, signatures, verification | implemented |
 | Signing by default on every packet type | not implemented; signing exists and is opt-in |
 | Direct, group and broadcast messages | implemented |
 | Replies and reactions | implemented |
 | Receipts and carrier release | implemented, for receipts that were asked for with `q:` |
-| Section 12.7, an archiver holding mail | **specified, not implemented** as an archiver role, but the parts are live elsewhere: `MeshStore` already parks a frame for an absent station and releases it on delivery, and the LXMF propagation mailbox already holds what could not be pushed and serves it when the recipient pulls. What is missing is an archiver being a station's declared `hold:` and telling a recipient that something is waiting |
+| Section 12.7, an archiver holding mail | **implemented** (`XprsMailbox`): a station deposits with the archivers it named, the archiver holds what has no receipt and re-offers it when the recipient reappears, and both ends send receipts to the sender's declared holder so it stops. `MeshStore` custody and the LXMF propagation mailbox remain the neighbouring mechanisms for their own lanes |
 | Section 36, publishing to chosen archivers | **specified, not implemented.** Every piece it is built from exists, the signed-record discipline, the append-only log with an (epoch, seq) cursor, archiver-to-archiver catch-up and archivers as the DHT's anchors are all live for FILES (`files/dht/`, `social/relay_node.dart`), but nothing yet keeps a publication log, pushes packets to a chosen archiver, or answers a query from their fields. The section deliberately adds no packet type and no key, so there is nothing on the wire to implement: the work is all plumbing |
 | Section 12.1, gateway reachability publications (`observation`/`identity` to an archiver) | **specified, not implemented** as a push; the raw material is live, every phone beacons `hears:` and the ESP32 digipeats, but no gateway publishes its observation to an archiver and no archiver answers for one |
 | Section 12.6, `only:` matching inside list fields | **partly implemented**: the shipped history responder matches `only:` against author and addressee (`xprs_archive.dart` query); `hears:`/`hold:`/`via:`/`grant:` containment is not searched yet |
@@ -8840,7 +8851,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `nick:` and signed identity | not implemented; identity is announced unsigned today |
 | `t:mailbox` | **implemented**: a receiving station records verified declarations (windows and `remove:mailbox` included, `lib/services/xprs/xprs_archive.dart`), and a station now COMPOSES one naming its own archivers whenever that list changes, which is what lets a recipient send its receipt to the sender's holder (12.8.3); custody consults the declaration when choosing where to hand mail next |
 | Several mailboxes with windows, and cancellation | **implemented on the receiving side** (see `t:mailbox` above); a composer states one open-ended declaration, not several windowed ones |
-| `t:service` | not implemented; no station advertises what it does |
+| `t:service` | **implemented**: the discovery beacon carries a signed `t:service` with the station's `serve:` claim, and a receiving station records it (`XprsMonitor`), which is what the archiver, relay and role filters read |
 | `t:command` and `t:result` | **implemented** for `cmd:history`: the phone and desktop host answer a command addressed to them with signed results (`lib/services/xprs/xprs_history_server.dart`); no other command is acted on yet |
 | `cmd:history`, backfill by replay | **implemented**: every device keeps a spool by default (500 MB or a year, the owner's numbers per section 30.3) and re-airs the original packets newest first on request, `code:202`, the page, then `code:200` or `code:206`, metered per section 22.2 and paced for the advert channel |
 | `cmd:file`, fetching bytes by hash | **implemented**: a station answers a signed `cmd:file` for any hash it holds, gated by the audience the reference was shared with (`lib/services/xprs/xprs_file_server.dart`, `xprs_file_acl.dart`), re-sending only what a `have:` map lacks over the packet lane and bracketing the bulk lane with `t:result`; the resolution ladder underneath it (Reticulum direct, DHT, LAN, I2P, BitTorrent) is what the fetcher falls back to when no station answers |
@@ -8850,7 +8861,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Inline files in `b:` | 7.7.6 implemented: chunks by offset as datagrams, the receiver's `have:` map, the holder's re-send of the gaps; the 7.7.4 nine-part `n:X/Y` split of `b:` is **specified, not implemented** |
 | A file in a conversation (7.7.7) | **implemented**: the reference is lifted out of the caption into `file:` with `size:` and `name:`, a picture too large for the packet lane travels as a preview plus a `t:file r:` describing the original, and automatic fetching is by bearer -- packet-lane sized on sight, larger only where a link that is not a shared radio can carry it |
 | Deterministic torrents, `ih:` derivable | **implemented** (`lib/services/torrent_service.dart` builds byte-identical torrents from content, so every holder derives one infohash) |
-| `serve:archive` | **implemented**: the spool is on by default and the discovery beacon says so; turning the preference off drops the claim and the answers together |
+| `serve:archive` | **implemented, and announced only by a public archiver**: every device spools its own traffic and that of the callsigns it follows, which needs no claim and makes none. The claim goes on the air when the operator opts into keeping strangers' packets — the default on a powered machine, off in a pocket (12: silence is not consent) — and dropping it drops the answers to strangers with it, leaving the station's own publications still served |
 | Section 13.4, one port for Reticulum and XPRS | **implemented** on the TCP hub listener: port 4242 answers HDLC-framed Reticulum and line-oriented XPRS on one socket, told apart by the first byte |
 | Retention policy, and keeping by worth rather than by age | deliberately unspecified (section 30.3); the shipping custody store bounds itself at 100 MB or 7 days and evicts `ORDER BY urg, ts`, which is exactly the kind of local decision this format leaves alone |
 | Paged replies, `code:206` | **implemented** by the history responder: twelve packets a page over the air, the probe row deciding 206 against 200, and the requester continuing by moving `until:` |
