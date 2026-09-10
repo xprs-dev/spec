@@ -243,7 +243,7 @@ def main():
         meta_html="",
         lede=lede,
         body=body,
-        footer=("Copyright (c) 2026 Max Brito. Licensed CC BY 4.0. "
+        footer=("Copyright (c) Max Brito and XPRS contributors. Licensed BSD-3-Clause. "
                 "This page is generated from XPRS.md in "
                 '<a href="https://github.com/xprs-dev/spec">xprs-dev/spec</a>; '
                 "the file is the authoritative copy."),
@@ -265,7 +265,7 @@ def main():
                    '</div>'),
         lede="",
         body=abody,
-        footer=("Copyright (c) 2026 Max Brito. Licensed CC BY 4.0. "
+        footer=("Copyright (c) Max Brito and XPRS contributors. Licensed BSD-3-Clause. "
                 "Generated from API-HTTP.md."),
     ), encoding="utf-8")
 

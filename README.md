@@ -79,11 +79,10 @@ sentence you quote is the sentence a reader finds.
 
 XPRS is written by Max Brito.
 
-The specification is licensed under [Creative Commons Attribution 4.0
-International](https://creativecommons.org/licenses/by/4.0/) (CC BY 4.0):
-share it and adapt it for any purpose, including commercially, as long as
-you credit Max Brito, link the licence and say what you changed. Full text
-in [LICENSE](LICENSE).
+The specification is licensed under the BSD 3-Clause License, copyright
+Max Brito and XPRS contributors: share it and adapt it for any purpose,
+including commercially, keeping the copyright notice and the licence text.
+Full text in [LICENSE](LICENSE).
 
 Implementations are separate works under their own licences. Writing one
 needs no permission, and an implementation is not a derivative of this
