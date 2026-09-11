@@ -501,6 +501,14 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `owner` | `path` | who may command a station: its allow-list (section 11.9) |
 | `use` | `enum` | who may originate traffic through a station (section 11.9) |
 | `first` | `path` | senders whose packets a station airs ahead of others (section 11.9) |
+| `ssid` | `text` | the WiFi network a station is to join, sealed (section 11.10) |
+| `pass` | `text` | its password, only ever sealed (section 11.10) |
+| `wifi` | `enum` | a station's WiFi: `join`, `off`; on a result `up`, `joining`, `failed`, `off` (section 11.10) |
+| `ip` | `text` | the IPv4 address a station holds on its network, dotted, on a result (section 11.10) |
+| `zone` | `enum` | a station's time zone: `auto`, or an `offset` (section 11.10) |
+| `ap` | `enum` | a station's own access point, `on` or `off` (section 11.10) |
+| `key` | `enum` | `new`: a station is to make a new key (section 11.10) |
+| `nsec` | `bech32` | a private key a station is to take, only ever sealed (section 11.10) |
 | `arg` | `words` | its arguments |
 | `code` | `int` | what happened, on a `result` |
 | `near` | `qty` | how close to `dest` counts as arrived (section 6.4) |
@@ -556,7 +564,7 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `x` | `b64` | sealed body |
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
 | `sig` | `base85` | signature |
-| `k` | `bech32` | public key, in `t:identity` and `t:challenge` |
+| `k` | `bech32` | public key, in `t:identity` and `t:challenge`, and on `q:owner`, a claim and a new key's answer (sections 11.9, 11.10) |
 
 ### 4.2 Packet types
 
@@ -1277,6 +1285,18 @@ station can route the packet, identify the recipient and release a carried copy
 on the matching receipt, without reading the content.
 
 A later cipher suite takes a new key rather than changing this one.
+
+**The cipher.** The sealed body is AES-256-CBC with PKCS#7 padding, under a
+key both ends compute and neither sends: the 32-byte X coordinate of the
+sender's private scalar times the recipient's public key (static-static ECDH
+on the curve of section 3), used as the AES key as it is. A fresh random
+16-byte initialisation vector comes first, and `x:` is the base64url, without
+padding, of the vector followed by the ciphertext. The recipient takes the
+sender's public key from its `t:identity` (section 6.3), or from `k:` where
+the packet carries one. This is the scheme section 29.2 sizes, and every `x:`
+in this document is sealed with it. A body of P bytes seals to
+`16 + 16 * (floor(P / 16) + 1)` bytes: 43, 64, 86, 107 and 128 characters for
+bodies of up to 15, 31, 47, 63 and 79 bytes.
 
 ### 6.2.1 Hiding parts of a message
 
@@ -3840,6 +3860,14 @@ t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:26:40 x:<64 characters> sig:<60 cha
 182 bytes, sealed and signed. `t:`, `f:`, `d:` and `ts:` stay in clear so the
 packet can be routed and its freshness checked without reading it.
 
+**What a sealed command hides is its fields, one per line.** The plaintext is
+`key:value` lines, the first of them `cmd:`, and a value runs to the end of
+its line, spaces included: a network name or a password travels as it is,
+which packet grammar, where only `m:` may hold a space, could not carry. A
+station checks the signature and the allow-list before it decrypts anything,
+so only somebody entitled to command it can make it try, and a plaintext that
+does not begin with `cmd:` is answered `code:400`.
+
 ### 11.5 Commands too long for one packet
 
 A command splits across parts exactly as a message does (section 7.6), which
@@ -4169,23 +4197,36 @@ configuration erased, it airs a request on its local bearers only, unsolicited
 and metered like any other unasked traffic (section 30):
 
 ```
-126  t:request f:X3RLY7 q:owner scope:local ts:2026-08-08_14:26:40 sig:<60 characters>
+192  t:request f:X3RLY7 q:owner scope:local ts:2026-08-08_14:26:40 k:npub1rly7x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvdw0s3jn54khce6m sig:<60 characters>
 ```
 
 `scope:local` because a claim is made by somebody standing next to the box,
 and a station that asks the whole network for an owner will be given one it
-did not want. The answer is a command, because it makes a state true:
+did not want. `k:` is the station's own public key: whoever answers checks
+that the callsign derives from it (section 3) and that the signature verifies
+under it, and then holds the key section 11.10 seals a password to. A station
+asks soon after it starts, within a quarter of a minute, and then every two
+minutes, because the person who flashed it is standing there waiting.
+
+The answer is a command, because it makes a state true:
 
 ```
-136  t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:26:50 cmd:set owner:X1QZ3N sig:<60 characters>
-145  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:51 r:992d83 code:200 owner:X1QZ3N sig:<60 characters>
+200  t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:26:50 cmd:set owner:X1QZ3N k:npub1qz3n7fu9j9uenmyva7ha6x9eqwymytv2847ccv4vxdmn45y50q7h7k5f sig:<60 characters>
+145  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:51 r:06092b code:200 owner:X1QZ3N sig:<60 characters>
 ```
+
+The claim carries the claimer's `k:` for the same reason a challenge does
+(section 29.2): a station that has just been flashed has heard nobody, and
+without the key it cannot check the signature. The station checks that `f:`
+derives from `k:` and verifies against it. A claim without `k:` is verified
+against a key the station already holds from a `t:identity`, and one it
+cannot verify at all is `code:403`.
 
 **An unowned station belongs to the first signer who claims it.** It accepts
 the first `cmd:set owner:` that verifies, that names the signer in `owner:`,
-and that arrived uncarried, no `via:`, which section 33.4 already requires
-of a command and which here is what keeps a claim from being made from across
-the country. Every later claim from anyone else is `code:403`. There is no
+and that arrived uncarried, no `via:`, on a local bearer, which section 11.4
+already requires of a command and which here is what keeps a claim from being
+made from across the country. Every later claim from anyone else is `code:403`. There is no
 pairing code and no button to press, and the window in which a stranger could
 claim a station is the one between flashing it and answering it, which the
 person flashing it controls.
@@ -4292,6 +4333,123 @@ station that says `use:all` still meters strangers under section 22.2 and may
 answer `code:429`. And it does not tell a station what to do with a packet it
 was handed and will not air, beyond the answer it already owes, `code:403`,
 out loud, because refusing quietly is what section 22.2 forbids.
+
+### 11.10 Setting up a station
+
+A station straight out of the flasher knows nothing about where it is: not
+the network it should join, not what it is called, not what time it is.
+Somebody used to type those in over a cable. With an owner (section 11.9)
+they go on the wire instead, as more keys on the same `cmd:set`, and the
+person standing next to the box does it from a phone.
+
+| Key | Type | Meaning |
+|---|---|---|
+| `ssid` | `text` | the WiFi network to join; sealed |
+| `pass` | `text` | its password; sealed, always |
+| `wifi` | `enum` | `join` the network now, or `off` |
+| `nick` | `nick` | what the station is called (section 6.3.1) |
+| `zone` | `enum` | `auto` to look up its time zone, or an `offset` to pin it |
+| `ap` | `enum` | its own access point, `on` or `off` |
+| `key` | `enum` | `new`: make a new key, and with it a new callsign |
+| `nsec` | `bech32` | take this key instead; sealed, always |
+
+Only an owner may set any of them. A station that is not owned answers
+`code:403`, and so does one owned by somebody else.
+
+**A password is never in the clear.** `pass:` and `nsec:` are accepted only
+inside `x:` (section 11.4), sealed to the key the station aired on its
+`q:owner`; one in the clear is `code:400` and is not stored, because a
+Bluetooth advertisement is a broadcast and everybody within a hundred metres
+has just read it. `ssid:` travels with its password:
+
+```
+t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:31:00 x:<107 characters> sig:<60 characters>
+```
+
+225 bytes. Sealed inside are three lines, `cmd:set`, `ssid:Casa do Mar` and
+`pass:sardinha na brasa 2026`, 52 bytes, and the lines are what let both
+values keep their spaces. A network name and a password of up to 79 bytes
+together fit one packet; a longer pair goes as two commands, `ssid:` then
+`pass:`, and the station joins when it has the second.
+
+**Joining takes two answers**, because joining takes seconds and can fail:
+
+```
+145  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:31:01 r:b4a13e code:202 wifi:joining sig:<60 characters>
+172  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:31:09 r:b4a13e code:200 wifi:up ip:192.168.1.40 ap:on zone:auto sig:<60 characters>
+```
+
+The first says the command was taken, the second what came of it, both naming
+the command by `r:`. A join that fails ends `code:500 wifi:failed` with the
+reason in `m:`, `wrong password`, `no network by that name` or `could not
+join`, which is the one sentence the person holding the phone needs:
+
+```
+t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:31:31 r:b4a13e code:500 wifi:failed ap:on zone:auto sig:<60 characters> m:wrong password
+```
+
+177 bytes.
+
+**A result states what IS** (section 11.7), and for a station being set up
+that is `wifi:` (`up`, `joining`, `failed` or `off`), `ip:` while it is up,
+`ap:`, `nick:` if it has one, and `zone:`. It never repeats the network name
+or the password: the owner already knows them, and everybody else should not.
+
+```
+158  t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:32:00 cmd:set nick:roof-north zone:+01:00 ap:off sig:<60 characters>
+191  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:32:01 r:92d70e code:200 wifi:up ip:192.168.1.40 ap:off nick:roof-north zone:+01:00 sig:<60 characters>
+```
+
+`ap:off` is answered before the access point goes, because the answer may be
+leaving by it.
+
+**A new key is a new station, and the phone follows the key.** The callsign
+derives from the key (section 3), so `key:new` or an `nsec:` changes the
+callsign too, and a station takes a new key only at a restart. It answers
+first, with the new public key and signed with the old one, restarts,
+announces itself, and answers again under its new name:
+
+```
+131  t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:33:00 cmd:set key:new sig:<60 characters>
+198  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:33:01 r:6e945a code:202 k:npub1m4q8ce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvd sig:<60 characters>
+173  t:identity f:X3M4Q8 ts:2026-08-08_14:33:12 k:npub1m4q8ce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvd sig:<60 characters>
+191  t:result f:X3M4Q8 d:X1QZ3N ts:2026-08-08_14:33:13 r:6e945a code:200 wifi:up ip:192.168.1.40 ap:off nick:roof-north zone:+01:00 sig:<60 characters>
+```
+
+The `202` is the old station vouching for the new key, and the `200` under the
+same `r:` is the new one proving it holds it. Its owners stay its owners. An
+imported key travels sealed and alone:
+
+```
+t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:34:00 x:<128 characters> sig:<60 characters>
+```
+
+246 bytes: `cmd:set` and `nsec:` with its 63 characters, 76 bytes sealed. That is
+how a station that died is replaced by one that carries on under its callsign.
+
+**A station being set up has no clock**, which rules out the 300 seconds of
+section 11.4 for these commands: nothing on the box can tell how old one is
+until it has joined a network. They follow the rule policy commands already
+follow (section 11.9): a command whose `ts:` is not later than the last one
+the station accepted is `code:408`, and the station keeps that `ts:` across a
+restart. A command it has just accepted, heard again, is answered again with
+what now IS, at most once every fifteen seconds, because a Bluetooth
+advertisement repeats until its sender stops it and a retransmission is not a
+replay. Setup keys and policy keys are not mixed in one command, and one that
+mixes them is `code:400`.
+
+**Every answer goes back the way the command came.** A phone that sent a
+command over Bluetooth is listening on Bluetooth, and one on the station's
+own access point is on that network. A station without Bluetooth, and a
+phone without a working one, do all of this over the access point: the phone
+joins it and the same packets cross it on UDP 4242, as section 13.4 carries
+any other.
+
+**What this section does not do.** It gives the station's owner no way to
+read its password back, and gives nobody but an owner any way to make it
+decrypt anything. It does not make a claim safer than section 11.9 does: the
+first person to answer an unowned station owns it, and the person who
+flashed it closes that window by answering first.
 
 ---
 
@@ -8124,6 +8282,14 @@ packet **250 bytes**, on every transport.
 | `owner` | `path` | who may command a station: its allow-list (section 11.9) |
 | `use` | `enum` | who may originate traffic through a station (section 11.9) |
 | `first` | `path` | senders whose packets a station airs ahead of others (section 11.9) |
+| `ssid` | `text` | the WiFi network a station is to join, sealed (section 11.10) |
+| `pass` | `text` | its password, only ever sealed (section 11.10) |
+| `wifi` | `enum` | a station's WiFi: `join`, `off`; on a result `up`, `joining`, `failed`, `off` (section 11.10) |
+| `ip` | `text` | the IPv4 address a station holds on its network, dotted, on a result (section 11.10) |
+| `zone` | `enum` | a station's time zone: `auto`, or an `offset` (section 11.10) |
+| `ap` | `enum` | a station's own access point, `on` or `off` (section 11.10) |
+| `key` | `enum` | `new`: a station is to make a new key (section 11.10) |
+| `nsec` | `bech32` | a private key a station is to take, only ever sealed (section 11.10) |
 | `arg` | `words` | its arguments |
 | `code` | `int` | what happened, on a `result` |
 | `near` | `qty` | how close to `dest` counts as arrived (section 6.4) |
@@ -8179,7 +8345,7 @@ packet **250 bytes**, on every transport.
 | `x` | `b64` | sealed body |
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
 | `sig` | `base85` | signature |
-| `k` | `bech32` | public key, in `t:identity` and `t:challenge` |
+| `k` | `bech32` | public key, in `t:identity` and `t:challenge`, and on `q:owner`, a claim and a new key's answer (sections 11.9, 11.10) |
 
 ### Position and movement
 
@@ -8804,6 +8970,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 5 identifiers | **implemented** |
 | Section 6.1 signatures, and surviving a relay | **implemented**; `test/xprs_sig_test.dart` signs, relays three hops and re-verifies |
 | Section 11.9 station ownership and owner policy | **implemented** on the station: an unowned ESP32 accepts the first verified, uncarried `cmd:set owner:` naming its own sender and writes the key into its allow-list; an owner sets `use:`, `first:` and `serve:` the same way, each answered with all four as they now stand; `use:` is enforced at the door a phone hands a packet through, with `t:sos` and `t:warning` exempt; `first:` ranks the queue through a hook the bearer takes; a policy command not strictly newer than the last accepted is `408`; `q:policy` is answered to anybody. An unowned station airs `q:owner scope:local` on its local bearers every two minutes, signed, and stops on being claimed. The codec side is implemented in `lib/services/xprs/xprs_station_policy.dart`, which also records the stations heard asking; no user interface offers the claim yet |
+| Section 11.10 setting up a station (`ssid:` and `pass:` sealed, `wifi:`, `nick:`, `zone:`, `ap:`, `key:new`, `nsec:`; the claim and the ask carrying `k:`) | **specified** in this revision; the station side, the app core and the Firmwares wapp that drives it are being built together |
 | Section 9.1 relay budget, 9.2 loop check | **implemented** in the codec (`xprsMayRelay`, `xprsWouldLoop`); nothing transmits `via:` yet, so nothing calls them on the air |
 | Section 9.11.3, `scope:local` is never carried | **implemented**; refused at custody admission in `MeshCustodyDelegate` |
 | Section 12.8.1 automated return leg (release on hearing, forward toward gossip) | **implemented** on the Flutter node (funnel-triggered release, `XprsForwarder` with `via:` and the loop check) and in the shared ESP32 app (release-on-hearing off the seen funnel, paced re-air, receipt purge); the T-Dongle keeps its original `blemesh_scf_*` loop. Bench-validated end to end |
