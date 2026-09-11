@@ -4375,7 +4375,7 @@ together fit one packet; a longer pair goes as two commands, `ssid:` then
 **Joining takes two answers**, because joining takes seconds and can fail:
 
 ```
-145  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:31:01 r:b4a13e code:202 wifi:joining sig:<60 characters>
+161  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:31:01 r:b4a13e code:202 wifi:joining ap:on zone:auto sig:<60 characters>
 172  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:31:09 r:b4a13e code:200 wifi:up ip:192.168.1.40 ap:on zone:auto sig:<60 characters>
 ```
 
@@ -4413,11 +4413,16 @@ announces itself, and answers again under its new name:
 131  t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:33:00 cmd:set key:new sig:<60 characters>
 198  t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:33:01 r:6e945a code:202 k:npub1m4q8ce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvd sig:<60 characters>
 173  t:identity f:X3M4Q8 ts:2026-08-08_14:33:12 k:npub1m4q8ce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvd sig:<60 characters>
-191  t:result f:X3M4Q8 d:X1QZ3N ts:2026-08-08_14:33:13 r:6e945a code:200 wifi:up ip:192.168.1.40 ap:off nick:roof-north zone:+01:00 sig:<60 characters>
+222  t:result f:X3M4Q8 d:X1QZ3N ts:2026-08-08_14:33:13 r:6e945a code:200 k:npub1m4q8ce6mua7lqpzry9x8gf2tvdw0s3jn54khce6mua7lqpzry9x8gf2tvd wifi:up ip:192.168.1.40 sig:<60 characters>
 ```
 
 The `202` is the old station vouching for the new key, and the `200` under the
-same `r:` is the new one proving it holds it. Its owners stay its owners. An
+same `r:` is the new one proving it holds it. The `200` carries the key
+itself, and the callsign derives from it, so a phone that heard neither the
+`202` nor the announcement can still believe it; it says where the WiFi
+stands and no more, because the rest does not fit beside a key. Until the
+command's window closes, a repeat of it still addressed to the old callsign
+is answered again from the new one. Its owners stay its owners. An
 imported key travels sealed and alone:
 
 ```
@@ -8969,8 +8974,8 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | **The packet format itself** | **implemented**; `lib/services/xprs/` parses, encodes, derives identifiers and signs. Every example packet in this document is a test fixture: `test/xprs_packet_test.dart` round-trips all 201 byte-exact, checks each stated byte count, and cross-checks every identifier against an independent Python implementation |
 | Section 5 identifiers | **implemented** |
 | Section 6.1 signatures, and surviving a relay | **implemented**; `test/xprs_sig_test.dart` signs, relays three hops and re-verifies |
-| Section 11.9 station ownership and owner policy | **implemented** on the station: an unowned ESP32 accepts the first verified, uncarried `cmd:set owner:` naming its own sender and writes the key into its allow-list; an owner sets `use:`, `first:` and `serve:` the same way, each answered with all four as they now stand; `use:` is enforced at the door a phone hands a packet through, with `t:sos` and `t:warning` exempt; `first:` ranks the queue through a hook the bearer takes; a policy command not strictly newer than the last accepted is `408`; `q:policy` is answered to anybody. An unowned station airs `q:owner scope:local` on its local bearers every two minutes, signed, and stops on being claimed. The codec side is implemented in `lib/services/xprs/xprs_station_policy.dart`, which also records the stations heard asking; no user interface offers the claim yet |
-| Section 11.10 setting up a station (`ssid:` and `pass:` sealed, `wifi:`, `nick:`, `zone:`, `ap:`, `key:new`, `nsec:`; the claim and the ask carrying `k:`) | **specified** in this revision; the station side, the app core and the Firmwares wapp that drives it are being built together |
+| Section 11.9 station ownership and owner policy | **implemented** on the station: an unowned ESP32 accepts the first verified, uncarried `cmd:set owner:` naming its own sender and writes the key into its allow-list; an owner sets `use:`, `first:` and `serve:` the same way, each answered with all four as they now stand; `use:` is enforced at the door a phone hands a packet through, with `t:sos` and `t:warning` exempt; `first:` ranks the queue through a hook the bearer takes; a policy command not strictly newer than the last accepted is `408`; `q:policy` is answered to anybody. An unowned station airs `q:owner scope:local` with its `k:` on its local bearers, first a quarter of a minute in, then every two minutes, and on Bluetooth every half minute, signed, and stops on being claimed; a claim carrying the claimer's `k:` is verified against it. The codec side is in `lib/services/xprs/xprs_station_policy.dart`, and the app's Firmwares wapp offers the claim |
+| Section 11.10 setting up a station (`ssid:` and `pass:` sealed, `wifi:`, `nick:`, `zone:`, `ap:`, `key:new`, `nsec:`; the claim and the ask carrying `k:`) | **implemented** on the ESP32 station (`common/xprs_app`: `cmdset_apply`, `setup_apply`, sealed bodies opened by `common/xprs_sig/xprsseal.c` after the signature and the allow-list), in the app core (a `$type:"secret"` field the host never stores, commands never deposited with an archiver, a station's key learned from its ask) and in the Firmwares wapp (`wapps/firmwares`). Bench-validated on an ESP32-C3 and an Android phone over the station's hotspot: claim, stats, name and zone, a sealed network joined in a second; then, with the station on the network it was given, a new key followed through the restart. Over Bluetooth the phone sat at the edge of that board's range (-95 dBm): its claim arrived only relayed by another station, which a claim refuses, so the Bluetooth leg is not yet shown on the bench. A station that answers over the LAN also sends the answer straight to the address the command came from, because its broadcasts stopped reaching a phone on its hotspot once it had joined another network |
 | Section 9.1 relay budget, 9.2 loop check | **implemented** in the codec (`xprsMayRelay`, `xprsWouldLoop`); nothing transmits `via:` yet, so nothing calls them on the air |
 | Section 9.11.3, `scope:local` is never carried | **implemented**; refused at custody admission in `MeshCustodyDelegate` |
 | Section 12.8.1 automated return leg (release on hearing, forward toward gossip) | **implemented** on the Flutter node (funnel-triggered release, `XprsForwarder` with `via:` and the loop check) and in the shared ESP32 app (release-on-hearing off the seen funnel, paced re-air, receipt purge); the T-Dongle keeps its original `blemesh_scf_*` loop. Bench-validated end to end |
