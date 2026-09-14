@@ -23,7 +23,7 @@ Reference implementations:
 [app](https://github.com/xprs-dev/app) for phones and
 desktops, [xprs-firmware](https://github.com/xprs-dev/firmware) for boards,
 [reticulum-dart](https://github.com/xprs-dev/reticulum-dart) for the shared
-networking library, and [wapps](https://github.com/xprs-dev/wapps) for the
+networking library, and [apps](https://github.com/xprs-dev/apps) for the
 applications that run inside the host. The Dart and C codecs both replay the
 corpus in their test suites.
 
