@@ -461,12 +461,18 @@ a human can say which one they mean.
 key:value key:value key:value ...
 ```
 
-- A key is 1 to 8 characters, lowercase letters and digits, beginning with a
+- A key is 1 to 16 characters, lowercase letters and digits, beginning with a
   letter, followed by `:`.
 - A value contains no space, and is never empty.
 - Fields are separated by exactly one space.
 - Order is free, except that `t:` is first and `m:`, when present, is last.
 - An unknown key is skipped along with its value.
+
+Sixteen characters lets a key be a word a reader already knows, `produces:`,
+or that word with a prefix, `lifeproduces:`, and keeps keys short enough that
+they never crowd the values out of a packet. Earlier drafts allowed eight. A
+station built to that limit skips a longer key the way it skips any key it does
+not know (design rule 8), so nothing it could already read changes.
 
 The maximum packet is **250 bytes on every transport**. This fits one LoRa
 packet, one BLE5 extended advertisement, and the store-and-forward buffer of the
@@ -542,7 +548,7 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `ch` | `label` | channel number in a band plan |
 | `range` | `qty` | expected usable range, an estimate |
 | `site` | `enum` | whether the station stays where it is |
-| `supply` | `enum` | what powers the station |
+| `source` | `enum` | what powers the station, or where `produces:` comes from (sections 14.3, 15.5.2) |
 | `every` | `qty` | how long between recurring windows |
 | `for` | `qty` | how long each window lasts |
 | `at` | `clock` | time of day a cycle is anchored to, UTC |
@@ -898,7 +904,7 @@ t:message f:X1QZ3N d:X1RD89 ts:2026-08-18_09:15:00 m:arrived at the marina
 **Wire to JSON.** Read fields left to right. Each is a key, a `:`, and a value.
 Split on the FIRST colon only, a value may contain colons, and `m:` usually
 does. Fields are separated by exactly one space, except that everything after
-` m:` is the message, spaces included. A key is 1 to 8 lowercase letters and
+` m:` is the message, spaces included. A key is 1 to 16 lowercase letters and
 digits and appears once (section 14.4), so it is a valid and unique JSON member
 name with nothing to escape.
 
@@ -1391,6 +1397,7 @@ Redaction is permitted in:
 | `dest:` | a coarse destination still steers a carried packet (9.4) |
 | `temp:` `hum:` `press:` `wind:` `wdir:` `intemp:` `inhum:` | weather readings |
 | `batt:` `dose:` `lifedose:` `radon:` `rf:` `efield:` `mfield:` `odometer:` | telemetry readings |
+| `produces:` `consumes:` `grid:` `storage:` `charged:` `load:` `lifeproduces:` `lifeconsumes:` `lifegridin:` `lifegridout:` `lifeload:` | energy readings (section 15.5.2) |
 | `tag:` `title:` `name:` | content labels; unfindable without the key is the author's choice |
 | `price:` `onboard:` | information between people |
 
@@ -1418,7 +1425,7 @@ restored there). The refusals, by reason:
   stations route by these.
 - **Safety**: `cw:` `sev:` `rad:` `kind:`, a warning warns everyone, and
   a content warning stays readable precisely when the content is not.
-- **Display meta**: `lang:` `mood:` `site:` `supply:` `range:`,
+- **Display meta**: `lang:` `mood:` `site:` `source:` `range:`,
   enumerated words, nothing gained.
 
 A worked packet, with the nonce fixed to `000102030405060708090a0b` so
@@ -2303,17 +2310,24 @@ A request for data is the same exchange without a message:
 
 ```
 t:request f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:26:40 q:pos,batt
-t:observation f:X3RLY7 d:X1QZ3N pos:38.7810,-9.2043 batt:64% ts:2026-08-08_14:26:40 s:pos,batt
+t:observation f:X3RLY7 pos:38.7810,-9.2043 batt:64% ts:2026-08-08_14:26:40 s:pos,batt
 ```
 
-61 and 94 bytes. A station holding only part of what was asked says so, rather
-than failing:
+61 and 85 bytes. **The answer is an observation like any other, so by default
+it is a broadcast**: it carries no `d:`, and the asker reads it together with
+every other station in range (section 15). `s:` is what tells the asker this
+is its answer. A reading one station asked for is usually one its neighbours
+can use as well, and a broadcast answer saves the next one from asking. A
+station may still address the answer with `d:` when the reading concerns the
+asker alone, such as a lock telling its owner it is locked (section 11.7).
+
+A station holding only part of what was asked says so, rather than failing:
 
 ```
-t:observation f:X3RLY7 d:X1QZ3N pos:38.7810,-9.2043 ts:2026-08-08_14:26:40 s:pos
+t:observation f:X3RLY7 pos:38.7810,-9.2043 ts:2026-08-08_14:26:40 s:pos
 ```
 
-80 bytes: position sent, battery not available, no error packet needed.
+71 bytes: position sent, battery not available, no error packet needed.
 
 `s:no` is the one word not in `q:`, for a request a station will not or cannot
 serve at all:
@@ -5723,10 +5737,10 @@ A station with a position and a power source says so, because both decide
 whether it is worth routing through:
 
 ```
-t:service f:X3RLY7 pos:38.7810,-9.2043 serve:relay,archive,internet,aprs supply:solar ts:2026-08-08_14:26:40 sig:<60 characters>
+t:service f:X3RLY7 pos:38.7810,-9.2043 serve:relay,archive,internet,aprs source:solar ts:2026-08-08_14:26:40 sig:<60 characters>
 ```
 
-173 bytes. `supply:solar` from section 14.3 means it survives a power cut,
+173 bytes. `source:solar` from section 14.3 means it survives a power cut,
 which is when a gateway matters most.
 
 ### 13.1 What this is not
@@ -5847,7 +5861,7 @@ t:channel f:X1QZ3N freq:145.500MHz mode:fm kind:listen since:2026-08-08_18:00:00
 | `kind:` | what the channel is for |
 | `pos:` | where the station or repeater is |
 | `site:` | whether it stays there |
-| `supply:` | what powers it |
+| `source:` | what powers it |
 | `every:`, `for:`, `at:` | a recurring listening window (section 21.2) |
 | `since:`, `until:` | when the whole schedule starts and stops |
 | `m:` | anything else |
@@ -5920,7 +5934,7 @@ window, and neither means the station is deaf the rest of the time.
 ### 14.3 Where the station is, and whether it stays
 
 ```
-t:channel f:X3RLY7 pos:38.7810,-9.2043 freq:145.600MHz mode:fm shift:-600kHz tone:123.0Hz power:50W range:40km site:fixed supply:solar kind:repeater ts:2026-08-08_14:26:40
+t:channel f:X3RLY7 pos:38.7810,-9.2043 freq:145.600MHz mode:fm shift:-600kHz tone:123.0Hz power:50W range:40km site:fixed source:solar kind:repeater ts:2026-08-08_14:26:40
 ```
 
 171 bytes: a solar repeater on a hill, reaching about 40 km.
@@ -5930,10 +5944,37 @@ question `type:` does not: whether the channel will still be there tomorrow.
 A repeater is `fixed`, a handheld carried up a hill is `portable`, a vessel is
 `mobile`, and a set installed for a weekend is `temporary`.
 
-`supply:` takes one of `grid`, `solar`, `wind`, `hydro`, `battery`, `generator`,
-`fuel`, `mixed`. It is what tells a reader whether a station survives a power
-cut, which is the moment its frequency matters most. A `solar` repeater is
-reachable after the grid drops and a `grid` one is not.
+`source:` says what powers the station, with one word from this list. It is
+what tells a reader whether a station survives a power cut, which is the moment
+its frequency matters most. A `solar` repeater is reachable after the grid drops
+and a `grid` one is not.
+
+| Word | Energy source |
+|---|---|
+| `grid` | the public grid, or shore power |
+| `battery` | a battery, charged elsewhere |
+| `solar` | photovoltaic panels or a solar thermal plant |
+| `wind` | wind turbines |
+| `hydro` | rivers, dams and micro-hydro |
+| `marine` | tidal and wave |
+| `geothermal` | geothermal |
+| `biomass` | wood, biogas and biofuel |
+| `diesel` | diesel engines |
+| `gasoline` | gasoline or petrol engines |
+| `natgas` | natural gas, including combined heat and power units |
+| `lpg` | propane and butane |
+| `hydrogen` | fuel cells |
+| `nuclear` | nuclear |
+| `fuel` | a fuel not listed |
+| `generator` | an engine generator whose fuel is not stated |
+| `mixed` | several sources together |
+| `other` | anything else, named in `m:` |
+
+There is no word `gas`. To one reader it is petrol and to the next natural gas,
+and a word that means two fuels names neither.
+
+The same list says where a site's production comes from, beside `produces:`
+(section 15.5.2).
 
 `range:` is the operator's own estimate of usable range, as a radius from
 `pos:`.
@@ -5945,7 +5986,7 @@ who installed the antenna knows better than anyone else what it usually does,
 and a reader 200 km away can rule the channel out without trying.
 
 ```
-t:channel f:X1BOA3 pos:38.6902,-9.4012 freq:156.800MHz ch:16 mode:fm power:25W range:15km site:mobile supply:battery kind:emergency ts:2026-08-08_14:26:40
+t:channel f:X1BOA3 pos:38.6902,-9.4012 freq:156.800MHz ch:16 mode:fm power:25W range:15km site:mobile source:battery kind:emergency ts:2026-08-08_14:26:40
 ```
 
 154 bytes: a vessel on channel 16, battery powered, about 15 km on a good day.
@@ -6131,6 +6172,21 @@ Position, movement, weather and telemetry share one packet type and one
 vocabulary. There is no separate weather packet and no separate telemetry
 packet. A weather station is a station that reports temperature in addition to
 position.
+
+**An observation is a broadcast by default.** It carries no `d:`, is addressed
+to nobody, and every station that hears it may read it, show it and use it.
+That is the default because a reading is a fact about a place or a station,
+and the value of a fact grows with the number of stations that have it: a
+temperature, a position or a solar yield heard by a whole street is worth more
+than the same packet delivered to one of its houses. An answer to a request is
+no exception (section 8).
+
+A station may address an observation with `d:` when the reading concerns one
+station alone: a lock answering its owner (section 11.7), a doorbell telling
+its owner someone is at the door, a mailbox telling one callsign how much it
+holds for it (section 9.12.3). `d:` says who the reading is for; it does not
+hide it from anyone else in range. A reading that must stay private is sealed
+(section 6.2), not addressed.
 
 ### 15.1 Position
 
@@ -6324,10 +6380,18 @@ form, `uptime:26h` rather than `uptime:94340s`, because the reading changes
 by the second while its meaning changes by the hour, and the bytes are better
 spent elsewhere.
 
+**A key beginning with `life` accumulates since the station's records
+began**, across every restart and without a wall clock. `lifetime:` is the
+running time, `lifedose:` the absorbed dose (section 15.5.1), and the energy
+counters of section 15.5.2 the energy. A new accumulating reading takes the
+same prefix in front of its reading's own name, `lifeproduces:` for
+`produces:`. A reading that flows both ways takes one counter per direction,
+named for the site's side of it: `lifegridin:` for what came in from the grid
+and `lifegridout:` for what went out.
+
 `odometer:` is the moving station's counterpart to `lifetime:`: how far it has
 travelled over its service life, in any distance unit (section 15.9). The word
-is the instrument's own, so a reader needs no glossary, and the key fits the
-eight characters a key is allowed exactly.
+is the instrument's own, so a reader needs no glossary.
 
 ```
 t:observation f:X1SHIP pos:38.7012,-9.1523 spd:12kt odometer:15420nmi lifetime:210day ts:2026-08-13_10:00:00
@@ -6391,6 +6455,132 @@ with a canonical unit, no new packet type, no version, no negotiation. A
 reading not yet adopted here travels under a `z`-key until it is. Candidates
 already visible from here: an ultraviolet index, and separated beta and
 neutron dose for stations with instruments that discriminate.
+
+### 15.5.2 Energy
+
+A station can report the electricity a site produces, consumes, trades with the
+grid and keeps in storage: a house with panels on the roof, a farm with a wind
+turbine, a cabin on a generator, a village hydro plant. One vocabulary covers
+all of them, because the source of the power is a word and not a key.
+
+| Key | Type | Meaning | Quantity |
+|---|---|---|---|
+| `produces` | `qty` | power being produced, from the source in `source:` | electrical power |
+| `consumes` | `qty` | power being consumed by the whole site | electrical power |
+| `grid` | `qty` | power exchanged with the public grid or shore power, positive when imported | electrical power |
+| `storage` | `qty` | power into or out of storage, positive when discharging | electrical power |
+| `charged` | `qty` | how full the site's storage is | proportion |
+| `load` | `qty` | power drawn by one appliance or circuit | electrical power |
+| `lifeproduces` | `qty` | energy produced since the station's records began | energy |
+| `lifeconsumes` | `qty` | energy consumed since the station's records began | energy |
+| `lifegridin` | `qty` | energy that came in from the grid since the station's records began | energy |
+| `lifegridout` | `qty` | energy that went out to the grid since the station's records began | energy |
+| `lifeload` | `qty` | energy drawn by the appliance or circuit since the station's records began | energy |
+
+```
+t:observation f:X1HOME source:solar produces:1900W consumes:4410W grid:0W storage:2510W charged:36% ts:2026-09-14_14:36:00
+```
+
+122 bytes: a house in the afternoon, 1900 W from the roof, 2510 W from its
+battery, nothing from the grid, 4410 W in use.
+
+**Positive means flowing into the site.** `produces:` and `consumes:` are never
+negative. `grid:` and `storage:` carry a sign, and the sign says the same thing
+on both: power arriving is positive, power leaving is negative. An export is
+`grid:-1700W`, and a battery being charged is `storage:-3520W`. One rule for
+both keys, rather than one per key, is what makes every packet balance:
+
+```
+produces + grid + storage = consumes
+```
+
+1900 + 0 + 2510 = 4410 in the packet above. A receiver may check the balance,
+and may work out the one term a site does not meter from the other three. A
+small difference is conversion loss in the inverter, not an error.
+
+`charged:` is the site's storage, and `batt:` stays what section 15.5 says it
+is, the reporting station's own battery. They are the same number only when the
+station runs on the house battery it reports, and a receiver deciding whether a
+station survives a power cut needs the second one.
+
+**Watts and watt-hours, nothing else.** Electrical power takes `W` and energy
+takes `Wh` (section 15.9), so any two readings compare by their digits, from a
+5 W sensor node to a 48000 W hydro plant, with no prefix to scale. Whole watts
+are the expected precision: the reading changes by the second and its meaning by
+the minute, the argument section 15.5 makes for `uptime:`.
+
+**`source:` says where `produces:` comes from**, with a word from the list in
+section 14.3, the same list that says what powers a station. `grid` and
+`battery` are never a source of `produces:`: the grid and storage have keys of
+their own, and naming them here would count the same power twice.
+
+**One source, one packet. Several sources, one more for each.** A site with one
+source sends everything together, as above. A site with several sends the total
+with `source:mixed`, which is the packet that balances, and each source's share
+in a packet of its own:
+
+```
+t:observation f:X3FARM source:mixed produces:4600W consumes:2900W grid:-1700W ts:2026-09-14_14:36:00
+t:observation f:X3FARM source:solar produces:3200W ts:2026-09-14_14:36:00
+t:observation f:X3FARM source:wind produces:1400W ts:2026-09-14_14:36:00
+```
+
+100, 73 and 72 bytes: a farm exporting 1700 W, most of it from the roof. A
+packet naming one source among several carries no `consumes:`, `grid:` or
+`storage:`, because only the total balances. A `produces:` with no `source:` is
+production whose source the station does not know, and is read as the total.
+
+This is the shape `link:` already has (section 15.6.1). A key appears once in a
+packet (section 4.10), so a reading that differs by source, like one that
+differs by bearer, travels once per source. A source that is not reported is
+not reported, never zero: `source:wind produces:0W` says the turbine is
+standing still, and silence says nothing, the rule `cw:` states in section 4.6.
+
+**`load:` is one appliance, never the house.** A smart plug, a sub-meter on the
+heat pump's circuit, a clamp on the car charger, each reports what passes
+through it:
+
+```
+t:observation f:X1PLUG state:on load:65W lifeload:12400Wh ts:2026-09-14_14:36:00
+```
+
+80 bytes: a plug of section 11.7, switched on, with a fridge behind it drawing
+65 W. What a plug measures is already inside some site's `consumes:`, which is
+why it is a key of its own: a receiver that added a house and its plugs together
+would count every plugged-in appliance twice.
+
+**Counters, not days.** The five `life` keys only ever grow, like the meter in
+the cupboard:
+
+```
+t:observation f:X1HOME source:solar lifeproduces:4210000Wh lifeconsumes:3950000Wh lifegridin:1200000Wh lifegridout:1460000Wh ts:2026-09-14_14:36:00
+```
+
+147 bytes. There is no "today" on the wire. A day needs a clock and a midnight,
+and a station reporting `epoch:` (section 15.7) has neither; a counter needs
+neither. Any receiver gets any period, a day, a month, the hour since it last
+looked, by subtracting two readings, and a packet it missed loses nothing. The
+grid has two counters because it flows both ways: an export netted against an
+import hides both, and the meter and the bill keep them apart. A counter that
+falls means a new meter, and a receiver starts a new series rather than
+recording a negative day.
+
+**Consumption tells who is home.** A house drawing 150 W at night and 3000 W at
+seven in the morning has told anyone listening when its people sleep, wake and
+go away. These readings may be redacted (section 6.2.1), and a station
+reporting them for its owner's displays sends them `scope:local` (section
+9.11.1), or directly and sealed to those displays, rather than to the world.
+Production says much less, and a community that pools it on purpose, a village
+watching its shared hydro plant, is what a broadcast is for.
+
+**Asking.** `q:energy` asks a station for its current energy readings, and the
+answer carries whichever of these keys it has, with `s:energy`:
+
+```
+t:request f:X1DISP d:X1HOME ts:2026-09-14_14:36:00 q:energy
+```
+
+59 bytes.
 
 ### 15.6 The radio itself
 
@@ -6651,6 +6841,8 @@ t:observation f:X3WX01 pos:38.7223,-9.1393 temp:57.6F hum:78% press:29.92inHg wi
 | power density | `uW/m2`, `mW/m2`, `W/m2` | `W/m2` |
 | electric field | `V/m`, `kV/m` | `V/m` |
 | magnetic flux density | `nT`, `uT`, `mT`, `mG` | `uT` |
+| electrical power | `W` | `W` |
+| energy | `Wh` | `Wh` |
 
 `deg` is degrees true and `degm` is degrees magnetic. The difference is not
 cosmetic: magnetic declination exceeds 20 degrees in parts of the world and
@@ -7699,7 +7891,8 @@ Proving a callsign, spending airtime well, extending the format, and living alon
 ## 28. Reserved words
 
 `q:` and `s:` words assigned by this document: `ack`, `read`, `sign`, `pos`,
-`batt`, `identity`, `pong`, `have`, `state`, `no`, `owner`, `policy`, `mail`.
+`batt`, `identity`, `pong`, `have`, `state`, `no`, `owner`, `policy`, `mail`,
+`energy`.
 Command words assigned: `history`, `file`, `put`, `set`, `interpret`, `update`.
 Reactions assigned for `add:` and `remove:`: `like`, `repost`. All other words
 are reserved. A word beginning with `z` is private, as a key beginning with `z`
@@ -8179,11 +8372,12 @@ answer with the same names.
 
 ```
 1  t:request f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:26:40 q:pos,batt
-2  t:observation f:X3RLY7 d:X1QZ3N pos:38.7810,-9.2043 ts:2026-08-08_14:26:40 s:pos
+2  t:observation f:X3RLY7 pos:38.7810,-9.2043 ts:2026-08-08_14:26:40 s:pos
 ```
 
-61 and 80 bytes. The station has no battery reading. It answers with what it
-has and says which request that satisfied, so the asker is not left waiting.
+61 and 71 bytes. The station has no battery reading. It answers with what it
+has, as a broadcast, and says in `s:` which request that satisfied, so the
+asker is not left waiting.
 
 ### 34.4 A long group message
 
@@ -8335,7 +8529,7 @@ packet **250 bytes**, on every transport.
 | `ch` | `label` | channel number in a band plan |
 | `range` | `qty` | expected usable range, an estimate |
 | `site` | `enum` | whether the station stays where it is |
-| `supply` | `enum` | what powers the station |
+| `source` | `enum` | what powers the station, or where `produces:` comes from (sections 14.3, 15.5.2) |
 | `every` | `qty` | how long between recurring windows |
 | `for` | `qty` | how long each window lasts |
 | `at` | `clock` | time of day a cycle is anchored to, UTC |
@@ -8429,6 +8623,26 @@ packet **250 bytes**, on every transport.
 | `efield` | `qty` | electric field strength | electric field |
 | `mfield` | `qty` | magnetic flux density | magnetic flux density |
 
+### Energy (section 15.5.2)
+
+Positive flows into the site: `produces + grid + storage = consumes`. Watts and
+watt-hours only. `source:` names where `produces:` comes from; several sources
+send a `source:mixed` total plus one packet per source.
+
+| Key | Type | Meaning | Quantity |
+|---|---|---|---|
+| `produces` | `qty` | power produced, from `source:` | electrical power |
+| `consumes` | `qty` | power consumed by the whole site | electrical power |
+| `grid` | `qty` | grid exchange, positive when imported | electrical power |
+| `storage` | `qty` | storage flow, positive when discharging | electrical power |
+| `charged` | `qty` | how full the site's storage is | proportion |
+| `load` | `qty` | power drawn by one appliance or circuit | electrical power |
+| `lifeproduces` | `qty` | energy produced since records began | energy |
+| `lifeconsumes` | `qty` | energy consumed since records began | energy |
+| `lifegridin` | `qty` | energy in from the grid since records began | energy |
+| `lifegridout` | `qty` | energy out to the grid since records began | energy |
+| `lifeload` | `qty` | energy drawn by the appliance or circuit since records began | energy |
+
 ### Time
 
 | Station capability | Key | Example | Meaning |
@@ -8467,6 +8681,8 @@ Every measurement carries its unit, immediately after the number, with no space.
 | power density | `uW/m2`, `mW/m2`, `W/m2` | `W/m2` |
 | electric field | `V/m`, `kV/m` | `V/m` |
 | magnetic flux density | `nT`, `uT`, `mT`, `mG` | `uT` |
+| electrical power | `W` | `W` |
+| energy | `Wh` | `Wh` |
 
 `deg` is true and `degm` is magnetic. A receiver converts to the canonical unit
 before comparing, storing or plotting. `pos:` is the one measurement with no
@@ -8484,7 +8700,7 @@ dot, never a trailing dot. Trailing zeros are significant.
 `q:` asks and `s:` answers with the same words, several separated by commas.
 
 Assigned: `ack`, `read`, `sign`, `pos`, `batt`, `identity`, `pong`, `have`,
-`state`, `no`.
+`state`, `no`, `owner`, `policy`, `mail`, `energy`.
 
 `s:no` means the request will not be served at all. A partial answer names only
 what it satisfied.
@@ -8567,7 +8783,8 @@ transmits there; absent means it only listens.
 kind:    listen simplex repeater beacon net gateway emergency other
 mode:    fm am usb lsb cw ssb packet aprs lora ft8 psk31 rtty dmr dstar c4fm m17 dv other
 site:    fixed mobile portable temporary
-supply:  grid solar wind hydro battery generator fuel mixed
+source:  grid battery solar wind hydro marine geothermal biomass diesel gasoline
+         natgas lpg hydrogen nuclear fuel generator mixed other
 ```
 
 Recurring windows: `every:` between them, `for:` how long each lasts, `at:` the
@@ -8934,6 +9151,7 @@ out before hashing.
 | challenge answered within | 60 seconds |
 | group name | 1 to 16 characters, uppercase |
 | callsign | any length, uppercase |
+| key | 1 to 16 characters, lowercase letters and digits |
 
 ### Private use
 
@@ -8952,17 +9170,21 @@ Assigned packet types: `message`, `observation`, `receipt`, `reaction`,
 All other lowercase words are reserved.
 
 Assigned keys: `t`, `f`, `d`, `ts`, `tz`, `q`, `s`, `r`, `n`, `via`, `track`,
-`seq`, `title`, `dest`, `onboard`, `price`, `cw`, `freq`, `bw`, `shift`,
-`urg`, `scope`, `lang`, `nick`, `hold`, `serve`, `cmd`, `arg`, `code`, `owner`,
-`use`, `first`, `near`, `route`, `relay`, `tone`, `input`, `power`, `mode`,
-`ch`, `range`, `site`, `supply`, `every`, `for`, `at`, `kind`, `sev`, `rad`,
-`tag`, `type`, `m`, `file`, `x`, `sig`, `k`, `add`, `remove`, `grant`,
-`revoke`, `role`, `hide`, `mood`, `only`, `opt`, `vote`, `root`, `size`,
-`since`, `until`, `pos`, `alt`, `acc`, `spd`, `dir`, `o`, `climb`, `temp`,
-`hum`, `intemp`, `inhum`, `wave`, `swell`, `seatemp`, `vis`, `press`, `wind`,
-`wdir`, `gust`, `rain1`, `rain24`, `solar`, `batt`, `volt`, `rssi`, `snr`,
-`link`, `busy`, `txtime`, `hears`, `peers`, `mail`, `age`, `epoch`, `b`, `ih`,
-`ph`, `name`, `count`, `have`, `off`.
+`seq`, `title`, `dest`, `onboard`, `price`, `cw`, `freq`, `bw`, `shift`, `urg`,
+`scope`, `lang`, `nick`, `hold`, `serve`, `cmd`, `arg`, `code`, `ver`, `url`,
+`owner`, `use`, `first`, `ssid`, `pass`, `wifi`, `ip`, `zone`, `ap`, `key`,
+`nsec`, `near`, `route`, `relay`, `tone`, `input`, `power`, `mode`, `ch`,
+`range`, `site`, `source`, `every`, `for`, `at`, `kind`, `sev`, `rad`, `tag`,
+`type`, `m`, `file`, `x`, `xr`, `sig`, `k`, `add`, `remove`, `grant`, `revoke`,
+`role`, `accept`, `leave`, `hide`, `mood`, `only`, `opt`, `vote`, `root`,
+`size`, `since`, `until`, `pos`, `alt`, `acc`, `spd`, `dir`, `o`, `climb`,
+`temp`, `hum`, `intemp`, `inhum`, `wave`, `swell`, `seatemp`, `vis`, `press`,
+`wind`, `wdir`, `gust`, `rain1`, `rain24`, `solar`, `batt`, `volt`, `rssi`,
+`snr`, `link`, `busy`, `txtime`, `hears`, `peers`, `mail`, `lx`, `uptime`,
+`lifetime`, `odometer`, `fw`, `state`, `level`, `target`, `dose`, `lifedose`,
+`radon`, `rf`, `efield`, `mfield`, `produces`, `consumes`, `grid`, `storage`,
+`charged`, `load`, `lifeproduces`, `lifeconsumes`, `lifegridin`, `lifegridout`,
+`lifeload`, `age`, `epoch`, `b`, `ih`, `ph`, `name`, `count`, `have`, `off`.
 
 Assigned `q:` and `s:` words: section 28.
 
@@ -9074,7 +9296,8 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `cmd:interpret` | not implemented; no station interprets natural language |
 | `near:`, regional delivery, `route:` in a receipt | not implemented |
 | `q:sign` and signed receipts | not implemented |
-| Recurring windows, `site:`, `supply:`, `range:` | not implemented |
+| Recurring windows, `site:`, `source:`, `range:` | not implemented |
+| Section 15.5.2 energy readings | partly; the app keeps the latest energy readings a station reports and shows them in its station panel. Nothing sends them yet |
 | `t:challenge` and `t:response` | not implemented; no challenge exists, and a spoofed authority-issued callsign is currently undetectable |
 | Periodic `t:identity` | implemented; self-signed, aired on every active bearer at start and every 30 minutes (29.1), and `q:identity` is answered directly |
 | `since:` and `until:` | not implemented; nothing in the current wire carries an event duration, and nothing expires on its own |
