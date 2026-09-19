@@ -229,6 +229,15 @@ they follow this document. Current extras:
 - The XPRS application: `POST /api/xprs/ask` (compose and air a signed `cmd:history` at
   another station), `POST /api/xprs/mailbox` (declare favourite indexers),
   and its application-specific surface.
+- A camera or doorbell (the `url:` target of XPRS.md section 11.7.2):
+  `GET /door/snapshot.jpg` returns a current still as `image/jpeg`, and
+  `GET /door/stream.mjpeg` returns the live view as `multipart/x-mixed-replace`
+  motion-JPEG a browser can open. These are the resources a `q:snapshot` or
+  `q:stream` answer names in its `url:`. A station that serves them lists
+  `snapshot` and `stream` under `api` in `/api/services`. They return image
+  bytes, not JSON, so the general JSON rule above does not apply to them; an
+  error still answers with the JSON `{"ok":false,"error":...}` shape. The camera
+  never puts its RTSP credentials in any URL it hands out.
 
 ## Compatibility today
 

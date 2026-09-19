@@ -453,6 +453,43 @@ typed by the operator and meant something by convention. Here the **person is
 proven by the key**, the **device is proven by `lx:`**, and the suffix exists so
 a human can say which one they mean.
 
+### 3.2 Callsigns of other networks
+
+A gateway (section 9.11.3) carries people who are not on XPRS at all: the
+users of a Meshtastic mesh on the same LoRa channel, today, and of other
+networks later. They have no key XPRS knows and no callsign anyone issued, so
+the gateway writes their own address in a form that can never be mistaken for
+either:
+
+```
+MT + the node number in eight uppercase hexadecimal digits   a Meshtastic node
+MC + the same                                                 reserved: MeshCore
+```
+
+```
+105  t:message f:MTA1B2C3D4 ts:2026-09-19_12:04:00 zmid:a1b2c3d44683c668 via:X3DCK0 m:anyone on the XPRS side?
+73  t:message f:X1QZ3N d:MTA1B2C3D4 ts:2026-09-19_12:05:10 m:yes, on the quay
+```
+
+The first is a Meshtastic user's message on the public channel, as the
+gateway `X3DCK0` wrote it; the second an XPRS user's answer, direct, which
+any gateway in range carries back. Four rules:
+
+- **The form is matched whole** (section 3.0.1): two letters, eight digits,
+  no suffix. `MTA1B2C3D` is not one, and neither is anything longer.
+- **It is not an XPRS callsign.** No key derives it and nobody can sign as it,
+  so a packet from one is always unsigned (section 6.1) and shown as the
+  other network's word relayed by the gateway named in `via:`, never as
+  established.
+- **It was issued by nobody.** Section 6.4.1 holds exactly as for `X1` to
+  `X5`: such a packet is never originated onto licensed spectrum.
+- **Every gateway maps it the same way**, with no table, because the node
+  number IS the address. Two gateways that hear the same node write the same
+  callsign, and a reply addressed to it can leave through either.
+
+The letters are the network's, so a further one takes two more letters and
+nothing else changes. `X` stays XPRS's alone.
+
 ---
 
 ## 4. Packet
@@ -478,6 +515,12 @@ The maximum packet is **250 bytes on every transport**. This fits one LoRa
 packet, one BLE5 extended advertisement, and the store-and-forward buffer of the
 smallest station. Content that does not fit is split into parts (section 7.6),
 never compressed.
+
+LoRa shares its channel with Meshtastic, and there each packet travels inside a
+Meshtastic frame of its own (section 14.8): a 16-byte header and a few bytes of
+wrapper leave 233 bytes, so a packet of 234 to 250 bytes goes as two frames and
+is joined again before anybody reads it. The limit above is unchanged; the
+framing is LoRa's business and no other bearer sees it.
 
 `m:` is the one field whose value may contain spaces, which is why it is last:
 everything after `m:` is the message. It needs no delimiter and no escaping, so
@@ -1504,6 +1547,19 @@ meant to close.
 
 Show it as decoration next to the callsign, never instead of it.
 
+**A callsign of another network (section 3.2) is the one exception**, because
+nothing about it can ever be verified. The gateway passes on the name that
+network gives its node, reduced to this field's characters, in an unsigned
+`t:identity`:
+
+```
+107  t:identity f:MTA1B2C3D4 ts:2026-09-19_12:04:00 scope:local nick:Maria-boat zmid:a1b2c3d41581bdbe via:X3DCK0
+```
+
+A receiver may show it, marked as the other network's own name for the node,
+and must not show it for an `X` callsign in any circumstance: there an
+unsigned nickname is still a claim by nobody.
+
 ### 6.3.2 A face and a line about yourself
 
 A townhall of callsigns is a spreadsheet. `file:` gives an identity a picture
@@ -1675,7 +1731,9 @@ t:message f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:40 m:meet at the bridge at six
 station tells an open group from a person or a machine by the `X` prefixes of
 section 3 and the characters that follow, so an open group may not be named like one of
 those, at any of the lengths section 3 allows, which is why a four-character
-group name such as `X1AB` is now as unusable as `X1ABCD` was.
+group name such as `X1AB` is now as unusable as `X1ABCD` was. Nor may it look
+like a callsign of another network (section 3.2): `MT` or `MC` and eight
+hexadecimal digits.
 
 ```
 t:message f:X1QZ3N d:LISBOA ts:2026-08-08_14:26:40 m:net starts in ten minutes
@@ -2278,6 +2336,8 @@ q:sign       sign a receipt confirming you read this
 q:pong       reply to this reachability test
 q:have       say whether you hold the file named by file:
 q:state      send your device state: state:, level:, target: (section 11.7)
+q:snapshot   send a current still: url: to fetch it (cameras, section 11.7.2)
+q:stream     send where the live view is: url: to open it (section 11.7.2)
 q:mail       say how much mail you hold, for the callsign in only: (13.12.3)
 ```
 
@@ -2743,6 +2803,21 @@ answer is to send **fewer** receipts, section 9.7.2 already spends them only
 against evidence the peer is there, and never to send unsigned ones. An
 acknowledgement nobody can check is airtime spent on nothing.
 
+**A gateway acknowledges for a network that cannot.** A Meshtastic node that
+receives a direct message confirms it the Meshtastic way, and nothing it sends
+can be verified here. The gateway that delivered the message turns that
+confirmation into a receipt of its own, signed with its own key:
+
+```
+130  t:receipt f:X3DCK0 d:X1QZ3N ts:2026-09-19_12:05:14 r:7108b6 s:ack sig:<60 characters>
+```
+
+`f:` is the gateway, not the recipient: the receipt says "the other network's
+device took it from me", and the signature makes the gateway answer for that.
+It releases a carrier's copy like any verified receipt, because the message
+has left XPRS and no carrier here can take it further. A refusal is said the
+same way, `s:no` with the other network's reason in `m:`.
+
 ### 9.7.2 When to stop trying
 
 A receipt that never comes is an instruction to stop, not to try harder.
@@ -3017,6 +3092,53 @@ outside it, **`scope:` wins and the packet is not carried.** A sender that
 meant it to travel should not have restricted it.
 
 ---
+
+### 9.11.5 A gateway from another network
+
+Section 9.11.3 is about packets leaving XPRS. A gateway also brings traffic
+IN, and then it is the author of a packet it did not write. Seven rules make
+that honest and keep two gateways from saying the same thing twice.
+
+- **`via:` names the gateway.** It is the first station the packet passed,
+  it runs the loop check of section 9.2, and a reader sees who translated.
+- **Unsigned, always** (section 3.2). The gateway never signs another
+  network's words as though they were its own.
+- **The other network's consent decides the scope.** A Meshtastic message
+  whose sender did not allow it onto the internet (the "OK to MQTT" choice
+  that network gives its users) arrives `scope:local`: the short-range
+  bearers carry it and no gateway publishes it (section 9.11.3).
+- **Two gateways, one packet.** The gateway dates the packet to the minute
+  and carries the other network's own identifier of the message in a
+  private key (this implementation: `zmid:`), so two gateways that hear the
+  same transmission compose the same packet and the same section 5
+  identifier, and a receiver keeps one.
+- **Nothing goes back.** A packet from a callsign of another network, or one
+  carrying that private key, is never translated into that network again.
+- **Only where the node is.** A message addressed to a node of another
+  network reaches every gateway that hears it, over the internet too. A
+  gateway puts it into the other network only for a node it has heard on
+  its own radio, or when one of its own users handed the message to it
+  directly. Every other gateway leaves it: sending it, or asking the other
+  network for that node's key, would spend a shared channel where the node
+  is not.
+- **Content only.** Messages, replies, likes and names cross; telemetry,
+  positions and the other network's machinery do not.
+
+```
+132  t:message f:MTA1B2C3D4 d:X1QZ3N ts:2026-09-19_12:06:00 scope:local r:7108b6 zmid:a1b2c3d4bc4c2495 via:X3DCK0 m:thanks, see you there
+```
+
+A reply keeps its thread: the gateway remembers which of the other network's
+messages it made from which packet, and writes `r:` accordingly.
+
+**What does not cross.** A sealed body (section 6.2) cannot: the other network
+has no key for it, and a gateway that could open it would be reading the
+mail. It is refused out loud (`s:no`) to the station that handed it over.
+And a direct message to an XPRS callsign through a gateway is exactly as
+private as the other network's public channel, which is to say not at all:
+the gateway turns it into clear XPRS, and on Meshtastic the key a gateway
+presents for a callsign is derived from the callsign, so that every gateway
+can deliver it.
 
 ### 9.12 Where to leave mail for me
 
@@ -4093,6 +4215,56 @@ self-generated, so it never originates on licensed spectrum (section
 any station goes silent, which is the honest signal: a lamp whose
 controller is gone IS unreachable, and nothing in the format pretends
 otherwise.
+
+### 11.7.2 Cameras: a door you can look at
+
+Some devices are not only read but seen. A doorbell reports that its button was
+pressed (`state:pressed`, section 11.7) and a camera reports motion
+(`state:motion`), and for both the useful next thing is a picture. A picture is
+not a packet: a JPEG does not fit in 250 bytes, and the format does not try to
+carry one. What travels on the air is a **pointer**, and the bytes travel over
+the station's LAN HTTP (the convenience interface of `API-HTTP.md`), fetched by
+whoever wants them.
+
+The pointer is `url:`, the same field section 11.8 already uses to name a source.
+A camera carries it on its identity, so a station that hears the camera once
+knows where to look, and on each event observation, so the picture offered is
+the one from that moment:
+
+```
+227  t:identity f:X4DR7K k:npub1pl3m7fu9j9uenmyva7ha6x9eqwymytv2847ccv4vxdmn45y50q7h7k5f nick:frontdoor url:http://192.168.1.9/door/snapshot.jpg ts:2026-08-19_18:40:00 sig:<60 characters>
+165  t:observation f:X4DR7K state:pressed url:http://192.168.1.9/door/snapshot.jpg ts:2026-08-19_18:40:00 sig:<60 characters>
+164  t:observation f:X4DR7K state:motion url:http://192.168.1.9/door/snapshot.jpg ts:2026-08-19_18:40:03 sig:<60 characters>
+122  t:observation f:X4DR7K state:clear ts:2026-08-19_18:40:33 sig:<60 characters>
+```
+
+The `url:` on an event names a still captured at the event, so a receiver that
+acts on the press has the door in front of it without a second exchange. The
+still behind that URL is the camera's business to keep fresh or expire.
+
+Asking on demand is the request of section 8, with two words this document adds
+to the closed `q:` list: `q:snapshot` for a current still, `q:stream` for the
+live view. The answer is an observation naming what was asked in `s:` and
+carrying the `url:`:
+
+```
+61   t:request f:X1A67X d:X4DR7K ts:2026-08-19_18:40:10 q:snapshot
+180  t:observation f:X4DR7K d:X1A67X r:44df54 s:snapshot url:http://192.168.1.9/door/snapshot.jpg ts:2026-08-19_18:40:11 sig:<60 characters>
+59   t:request f:X1A67X d:X4DR7K ts:2026-08-19_18:40:20 q:stream
+178  t:observation f:X4DR7K d:X1A67X r:5ab0c3 s:stream url:http://192.168.1.9/door/stream.mjpeg ts:2026-08-19_18:40:21 sig:<60 characters>
+```
+
+`q:snapshot` and `q:stream` are reads, not actuations: they change nothing, so
+section 11.4 does not require the asker to sign, and a bare `q:snapshot` from a
+station in range is answered the way `q:pos` is. The camera still signs its own
+answer, because it is an `X4` station and every `X4` station signs what it says
+(section 11.7.1). Whether the URL is served to anyone who fetches it or only to
+a listed few is the owner's policy on the HTTP side, the same allow-list that
+guards an actuation (section 11.4) when a door view is private, and the general
+`API-HTTP.md` rule holds: a camera on a hostile network turns its HTTP off
+rather than putting a door picture within reach. The `url:` for a stream names
+whatever the camera serves, a motion-JPEG the browser can open being the plain
+choice, and never an RTSP address carrying the camera's own password.
 
 ### 11.8 Keeping a station's firmware current
 
@@ -5675,6 +5847,7 @@ t:service f:X3RLY7 pos:38.7810,-9.2043 serve:relay,archive ts:2026-08-08_14:26:4
 | `archive` | an archiver (section 12): keeps a spool of what it hears and re-airs it on `cmd:history`, archives its depositors' publications and answers queries, holds mail for stations that named it (or for anyone, as it pleases), and publishes its directory of who-keeps-what (section 12.9). One word covers all of it, there is no separate service for the pointer half or the storage half, and the offer is the same on every bearer the station has (section 12.0) |
 | `internet` | gateways to the internet |
 | `aprs` | gateways to APRS-IS |
+| `meshtastic` | gateways to a Meshtastic mesh on its LoRa channel (sections 3.2, 9.11.5) |
 | `nostr` | runs a NOSTR relay |
 | `files` | hosts content-addressed files: answers `q:have` (section 8.1) and `cmd:file`, and accepts `cmd:put` deposits within its budgets (section 33.2) |
 | `devices` | operates automated devices, each an `X4` station of its own (section 11.7.1) |
@@ -6163,6 +6336,32 @@ This is also the missing handshake of section 11.2.2: when a pair's best bulk
 lane is not obvious from the bearers they are already on, the invitation is
 how one proposes and the other agrees, and the transfer's control packets
 then bracket a lane both actually chose.
+
+### 14.8 The LoRa channel is shared with Meshtastic
+
+A LoRa receiver hears only the modulation it is set to, so two networks meet
+on a channel only by agreeing on it. XPRS runs Meshtastic's default channel
+("LongFast": spreading factor 11, 250 kHz, coding rate 4/5, a 16-symbol
+preamble, sync word `0x2B`) on Meshtastic's own frequency for the region,
+869.525 MHz in Europe:
+
+```
+114  t:channel f:X3DCK0 freq:869.525MHz mode:lora bw:250kHz ch:longfast power:14dBm kind:gateway ts:2026-09-19_12:00:00
+141  t:service f:X3DCK0 serve:archive,meshtastic count:212 ts:2026-09-19_12:00:00 sig:<60 characters>
+```
+
+On that channel an XPRS packet is the payload of a Meshtastic frame on a
+private port and a channel of its own, which every Meshtastic node ignores
+and relays. A station also relays Meshtastic's own traffic by Meshtastic's
+rules, and a gateway translates between the two (section 9.11.5).
+
+Two consequences for the airtime of section 30. A full frame is about two
+seconds on the air, five times what the same packet cost at spreading factor
+7, on a channel two networks share. So a station puts on LoRa only what
+somebody is waiting for, messages, receipts, calls for help, commands and
+their results, keys to verify them, and leaves presence (beacons, service
+announcements) to the bearers that are cheap. And it listens before it
+talks.
 
 ---
 
@@ -9234,7 +9433,8 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 9.7.1, receipts without asking | **specified, not yet on the air.** The rule and its exclusions are settled and the two example packets are test fixtures; no station sends an unasked `s:ack` yet. What made it necessary is fixed already on the Reticulum side: an unacknowledged single-packet delivery no longer reports itself as delivered, and the sender retries at 20s/60s/5min before leaving the copy held (`lxmf_router.dart`) |
 | Long messages in parts | implemented |
 | Encryption and the sealed-body band rule | implemented |
-| Section 6.4.1, no self-generated callsign onto licensed spectrum | **implemented** in the firmware: the SA818 transmitter on the kv4p refuses a frame from an `X1` to `X5` sender at the one function every web-chat, console and BLE-bridged frame goes through, and the web chat says why; the APRS-IS iGate logs in receive-only (passcode -1) until an issued callsign is set (`POST /api/igate/callsign`), and never gates up a frame from an `X1` to `X5` sender. One test, `xprs_is_self_generated` in `common/xprs_codec`, decides both. The app and the chat wapp no longer connect to APRS-IS at all |
+| Sections 3.2, 9.11.5, 14.8, the LoRa channel shared with Meshtastic | **implemented** in the ESP32 firmware (`common/xprs_meshtastic`, `docs/meshtastic.md`): LongFast on Meshtastic's frequency, XPRS in its own frames, Meshtastic relayed by Meshtastic's rules, and messages, direct messages (Meshtastic's public-key form), replies, likes and names translated both ways. Bench-validated 2026-09-19 against a stock Meshtastic 2.7.26 node and the Meshtastic Android app; a gateway delivers only to nodes it heard itself. The P1-Pro (nRF52) is not yet ported |
+| Section 6.4.1, no self-generated callsign onto licensed spectrum | **implemented** in the firmware: the SA818 transmitter on the kv4p refuses a frame from an `X1` to `X5` sender, or from a callsign of another network (section 3.2), at the one function every web-chat, console and BLE-bridged frame goes through, and the web chat says why; the APRS-IS iGate logs in receive-only (passcode -1) until an issued callsign is set (`POST /api/igate/callsign`), and never gates up a frame from an `X1` to `X5` sender. `xprs_is_self_generated` and `xprs_is_unissued` in `common/xprs_codec` decide both. The app and the chat wapp no longer connect to APRS-IS at all |
 | Section 6.4.2, an issued callsign bound to a key by `t:identity` | partly; the announcement is built and aired (6.3), but no user interface offers to enter a licensed callsign, so the binding is only ever for a derived one |
 | File references by content hash | **implemented**, in the base64url form this document now specifies (`MediaRef`); the older 64-hex form is still read |
 | Identity announcement | implemented |
