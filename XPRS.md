@@ -463,7 +463,7 @@ either:
 
 ```
 MT + the node number in eight uppercase hexadecimal digits   a Meshtastic node
-MC + the same                                                 reserved: MeshCore
+MC + the first four bytes of its public key, the same way      a MeshCore node
 ```
 
 ```
@@ -516,10 +516,11 @@ packet, one BLE5 extended advertisement, and the store-and-forward buffer of the
 smallest station. Content that does not fit is split into parts (section 7.6),
 never compressed.
 
-LoRa shares its channel with Meshtastic, and there each packet travels inside a
-Meshtastic frame of its own (section 14.8): a 16-byte header and a few bytes of
-wrapper leave 233 bytes, so a packet of 234 to 250 bytes goes as two frames and
-is joined again before anybody reads it. The limit above is unchanged; the
+On LoRa the frame depends on the station's LoRa mode (section 14.8). In `xprs`
+mode the packet is the frame. In `meshtastic` mode each packet travels inside
+a Meshtastic frame of its own: a 16-byte header and a few bytes of wrapper
+leave 233 bytes, so a packet of 234 to 250 bytes goes as two frames and is
+joined again before anybody reads it. The limit above is unchanged; the
 framing is LoRa's business and no other bearer sees it.
 
 `m:` is the one field whose value may contain spaces, which is why it is last:
@@ -556,6 +557,7 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `ip` | `text` | the IPv4 address a station holds on its network, dotted, on a result (section 11.10) |
 | `zone` | `enum` | a station's time zone: `auto`, or an `offset` (section 11.10) |
 | `ap` | `enum` | a station's own access point, `on` or `off` (section 11.10) |
+| `lora` | `enum` | a station's LoRa mode: `xprs`, `meshtastic` or `meshcore` (sections 11.10, 14.8) |
 | `key` | `enum` | `new`: a station is to make a new key (section 11.10) |
 | `nsec` | `bech32` | a private key a station is to take, only ever sealed (section 11.10) |
 | `arg` | `words` | its arguments |
@@ -4536,6 +4538,7 @@ person standing next to the box does it from a phone.
 | `nick` | `nick` | what the station is called (section 6.3.1) |
 | `zone` | `enum` | `auto` to look up its time zone, or an `offset` to pin it |
 | `ap` | `enum` | its own access point, `on` or `off` |
+| `lora` | `enum` | its LoRa mode (section 14.8): `xprs`, `meshtastic` or `meshcore`; taken at once |
 | `key` | `enum` | `new`: make a new key, and with it a new callsign |
 | `nsec` | `bech32` | take this key instead; sealed, always |
 
@@ -4585,8 +4588,9 @@ password would have cost the owner the station.
 
 **A result states what IS** (section 11.7), and for a station being set up
 that is `wifi:` (`up`, `joining`, `failed` or `off`), `ip:` while it is up,
-`ap:`, `nick:` if it has one, and `zone:`. It never repeats the network name
-or the password: the owner already knows them, and everybody else should not.
+`ap:`, `lora:` if it has a LoRa radio, `nick:` if it has one, and `zone:`. It
+never repeats the network name or the password: the owner already knows
+them, and everybody else should not.
 
 ```
 158  t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:32:00 cmd:set nick:roof-north zone:+01:00 ap:off sig:<60 characters>
@@ -4595,6 +4599,25 @@ or the password: the owner already knows them, and everybody else should not.
 
 `ap:off` is answered before the access point goes, because the answer may be
 leaving by it.
+
+**The LoRa mode is taken at once** (section 14.8): the radio retunes, the
+airtime budget follows it to the new channel, and the station stays up. It
+is true by the time the answer leaves, so the answer is a `code:200` naming
+the mode now running. A mode the station's firmware does not have is
+`code:501` and a switch that failed is `code:500`, both with nothing
+changed. A firmware may leave a mode out: a board too small for a second
+mesh has the vocabulary and not the code, and 501 is how it says so:
+
+```
+133  t:command f:X1QZ3N d:X3RLY7 ts:2026-09-19_20:00:00 cmd:set lora:xprs sig:<60 characters>
+201  t:result f:X3RLY7 d:X1QZ3N ts:2026-09-19_20:00:01 r:5c19e2 code:200 wifi:up ip:192.168.1.40 ap:off lora:xprs nick:roof-north zone:+01:00 sig:<60 characters>
+242  t:result f:X3RLY7 d:X1QZ3N ts:2026-09-19_20:00:01 r:5c19e2 code:501 wifi:up ip:192.168.1.40 ap:off lora:meshtastic nick:roof-north zone:+01:00 sig:<60 characters> m:meshcore is not in this firmware
+```
+
+From that moment the station is on another channel: a station in another
+mode no longer hears it on LoRa, and it is reached, as it was set, over
+every other bearer. Whatever was in flight on the old channel is lost, which
+is why the mode is an operator's decision and never an automatic one.
 
 **A new key is a new station, and the phone follows the key.** The callsign
 derives from the key (section 3), so `key:new` or an `nsec:` changes the
@@ -6337,31 +6360,77 @@ lane is not obvious from the bearers they are already on, the invitation is
 how one proposes and the other agrees, and the transfer's control packets
 then bracket a lane both actually chose.
 
-### 14.8 The LoRa channel is shared with Meshtastic
+### 14.8 LoRa modes
 
-A LoRa receiver hears only the modulation it is set to, so two networks meet
-on a channel only by agreeing on it. XPRS runs Meshtastic's default channel
-("LongFast": spreading factor 11, 250 kHz, coding rate 4/5, a 16-symbol
-preamble, sync word `0x2B`) on Meshtastic's own frequency for the region,
-869.525 MHz in Europe:
+A LoRa receiver hears only the modulation it is set to, down to the sync word
+the radio compares before any software sees a byte, so two networks meet on a
+channel only by agreeing on it. Which LoRa network a station shares its
+channel with is therefore a setting, its **LoRa mode**, chosen by the operator
+(`lora:`, section 11.10) and taken at once:
+
+| Mode | The channel | On it |
+|---|---|---|
+| `xprs` | XPRS's own: spreading factor 7, 125 kHz, coding rate 4/5, an 8-symbol preamble, sync word `0x12`; 869.5 MHz in Europe (868.2 MHz in band g1), 903.9 MHz in the US, 917.0 MHz in Australia | XPRS packets, one per frame, as on every other bearer |
+| `meshtastic` | Meshtastic's default, "LongFast": spreading factor 11, 250 kHz, coding rate 4/5, a 16-symbol preamble, sync word `0x2B`, on Meshtastic's frequency for the region, 869.525 MHz in Europe | XPRS inside Meshtastic frames, and Meshtastic relayed and translated |
+| `meshcore` | MeshCore's default, measured off a node of theirs: spreading factor 8, 62.5 kHz, coding rate 4/5, a 16-symbol preamble, sync word `0x12`, 869.618 MHz in Europe | XPRS inside MeshCore frames, and MeshCore relayed and translated |
+
+Stations in different modes do not hear each other on LoRa, and still meet on
+every other bearer: the mode decides who shares the radio, not who is on the
+network. A station changes mode without restarting, so it may also be asked
+to LISTEN on each mode in turn before its operator chooses: which networks
+are within reach is a measurement, not a guess.
+
+**In `meshtastic` mode:**
 
 ```
 114  t:channel f:X3DCK0 freq:869.525MHz mode:lora bw:250kHz ch:longfast power:14dBm kind:gateway ts:2026-09-19_12:00:00
 141  t:service f:X3DCK0 serve:archive,meshtastic count:212 ts:2026-09-19_12:00:00 sig:<60 characters>
 ```
 
-On that channel an XPRS packet is the payload of a Meshtastic frame on a
-private port and a channel of its own, which every Meshtastic node ignores
-and relays. A station also relays Meshtastic's own traffic by Meshtastic's
-rules, and a gateway translates between the two (section 9.11.5).
+An XPRS packet is the payload of a Meshtastic frame on a private port and a
+channel of its own, which every Meshtastic node ignores and relays. A station
+also relays Meshtastic's own traffic by Meshtastic's rules, and a gateway
+translates between the two (section 9.11.5); it says `meshtastic` in its
+`serve:` only in this mode.
+
+**In `meshcore` mode:**
+
+```
+114  t:channel f:X3DCK0 freq:869.525MHz mode:lora bw:250kHz ch:public power:14dBm kind:gateway ts:2026-09-20_12:00:00
+139  t:service f:X3DCK0 serve:archive,meshcore count:212 ts:2026-09-20_12:00:00 sig:<60 characters>
+```
+
+An XPRS packet is the payload of a MeshCore frame of the type MeshCore keeps
+for payloads a node does not understand, flood-routed. A MeshCore repeater
+HEARS it and does not carry it, so XPRS on that channel reaches the stations
+in radio range and no further; what crosses the whole of MeshCore is what
+the gateway translates. A station also relays MeshCore's own
+traffic by MeshCore's rules, and a gateway translates between the two
+(section 9.11.5); it says `meshcore` in its `serve:` only in this mode.
+
+MeshCore asks its users nothing about the internet, so there is no consent
+to read (section 9.11.5) and everything translated from it arrives
+`scope:local`: the short-range bearers carry it and no gateway publishes it.
+Its channel messages are not signed and name their sender only by a name, so
+one crosses only under the address of a node whose advert the gateway heard
+carrying that name; a name nobody has claimed is not an address and the
+message stays where it was said.
+
+MeshCore addresses a node by the first byte of its public key and its users
+carry each other's keys, so an XPRS callsign is reachable there only once a
+gateway has advertised it: the callsign's MeshCore identity is derived from
+the callsign itself, so every gateway advertises the same one and any of them
+can carry that callsign's mail. Nothing about that identity is secret, and a
+message that crosses is in the clear on the other side, which is the same
+bargain as section 9.11.5's.
 
 Two consequences for the airtime of section 30. A full frame is about two
-seconds on the air, five times what the same packet cost at spreading factor
-7, on a channel two networks share. So a station puts on LoRa only what
-somebody is waiting for, messages, receipts, calls for help, commands and
-their results, keys to verify them, and leaves presence (beacons, service
-announcements) to the bearers that are cheap. And it listens before it
-talks.
+seconds on the air, five times what the same packet costs in `xprs` mode, on
+a channel two networks share. So a station puts on LoRa only what somebody is
+waiting for, messages, receipts, calls for help, commands and their results,
+keys to verify them, and leaves presence (beacons, service announcements) to
+the bearers that are cheap. In `xprs` mode, on a channel of its own, it
+carries everything. In every mode a station listens before it talks.
 
 ---
 
@@ -9433,7 +9502,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 9.7.1, receipts without asking | **specified, not yet on the air.** The rule and its exclusions are settled and the two example packets are test fixtures; no station sends an unasked `s:ack` yet. What made it necessary is fixed already on the Reticulum side: an unacknowledged single-packet delivery no longer reports itself as delivered, and the sender retries at 20s/60s/5min before leaving the copy held (`lxmf_router.dart`) |
 | Long messages in parts | implemented |
 | Encryption and the sealed-body band rule | implemented |
-| Sections 3.2, 9.11.5, 14.8, the LoRa channel shared with Meshtastic | **implemented** in the ESP32 firmware (`common/xprs_meshtastic`, `docs/meshtastic.md`): LongFast on Meshtastic's frequency, XPRS in its own frames, Meshtastic relayed by Meshtastic's rules, and messages, direct messages (Meshtastic's public-key form), replies, likes and names translated both ways. Bench-validated 2026-09-19 against a stock Meshtastic 2.7.26 node and the Meshtastic Android app; a gateway delivers only to nodes it heard itself. The P1-Pro (nRF52) is not yet ported |
+| Sections 3.2, 9.11.5, 14.8, the LoRa modes and the channel shared with Meshtastic | **implemented** in the ESP32 firmware (`common/xprs_meshtastic`, `docs/meshtastic.md`): LongFast on Meshtastic's frequency, XPRS in its own frames, Meshtastic relayed by Meshtastic's rules, and messages, direct messages (Meshtastic's public-key form), replies, likes and names translated both ways. Bench-validated 2026-09-19 against a stock Meshtastic 2.7.26 node and the Meshtastic Android app; a gateway delivers only to nodes it heard itself. The LoRa mode (`xprs`, `meshtastic` or `meshcore`) is switched live, with no restart, by config, on the T-Deck's screen, from the serial console or by an owner's `cmd:set lora:`; a station can also survey every mode in turn and report who is on each. The first two modes and the live switch are verified on the bench; the P1-Pro (nRF52, `xprs` mode only) is heard again by stations in `xprs` mode. `meshcore` mode carries XPRS on MeshCore's channel, relays MeshCore's own traffic by its flood rules and translates messages both ways, adverts and direct messages included (`common/xprs_meshcore`, host-tested against the published layouts, against OpenSSL and against a simulated MeshCore node); Bench-validated 2026-09-20 against a node running MeshCore v1.17.1: an XPRS callsign appears in its contact list, channel messages and direct messages cross both ways, and a direct message is acknowledged into a signed gateway receipt. Its repeaters do not carry XPRS's own frames, so XPRS on that channel is direct-range only. On that side a channel message is unsigned and names its sender only by a name, so one crosses only when an advert this station heard carries that name. The remote switch is host-tested, not yet on the bench |
 | Section 6.4.1, no self-generated callsign onto licensed spectrum | **implemented** in the firmware: the SA818 transmitter on the kv4p refuses a frame from an `X1` to `X5` sender, or from a callsign of another network (section 3.2), at the one function every web-chat, console and BLE-bridged frame goes through, and the web chat says why; the APRS-IS iGate logs in receive-only (passcode -1) until an issued callsign is set (`POST /api/igate/callsign`), and never gates up a frame from an `X1` to `X5` sender. `xprs_is_self_generated` and `xprs_is_unissued` in `common/xprs_codec` decide both. The app and the chat wapp no longer connect to APRS-IS at all |
 | Section 6.4.2, an issued callsign bound to a key by `t:identity` | partly; the announcement is built and aired (6.3), but no user interface offers to enter a licensed callsign, so the binding is only ever for a derived one |
 | File references by content hash | **implemented**, in the base64url form this document now specifies (`MediaRef`); the older 64-hex form is still read |
