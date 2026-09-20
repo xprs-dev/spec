@@ -4539,6 +4539,8 @@ person standing next to the box does it from a phone.
 | `zone` | `enum` | `auto` to look up its time zone, or an `offset` to pin it |
 | `ap` | `enum` | its own access point, `on` or `off` |
 | `lora` | `enum` | its LoRa mode (section 14.8): `xprs`, `meshtastic` or `meshcore`; taken at once |
+| `freq` | `text` | the LoRa channel, the shape section 14 writes one in (`433.900MHz`, the suffix optional) or in hertz, or `preset` for the region's own; taken at once |
+| `region` | `enum` | a channel preset of the running mode (`eu`, `eu-433`, `us`, `au`), which brings its frequency, its hour and its ceiling |
 | `key` | `enum` | `new`: make a new key, and with it a new callsign |
 | `nsec` | `bech32` | take this key instead; sealed, always |
 
@@ -4599,6 +4601,22 @@ them, and everybody else should not.
 
 `ap:off` is answered before the access point goes, because the answer may be
 leaving by it.
+
+**The channel is a setting, not a property of the hardware.** The same
+radio is sold matched for 433, 868 and 915 MHz, and a network's presets
+differ by region and change over time, so an owner sets the frequency the
+way they set anything else: `region:` takes a preset of the running mode,
+`freq:` takes an exact channel for a band the station has no preset for,
+and `freq:preset` gives the region's own back. Both are taken at once, and
+the answer carries `freq:` and `region:` so the owner reads back where the
+station landed rather than trusting that it heard them. A frequency the
+radio cannot tune is `code:400`; a region the running mode does not have
+is `code:501`.
+
+**What a station cannot answer for is whether a channel is legal where it
+stands.** It meters against the region it was given, it says in its log
+when a frequency sits outside that region's band, and the rest belongs to
+the operator, exactly as the power ceiling does (section 14.4).
 
 **The LoRa mode is taken at once** (section 14.8): the radio retunes, the
 airtime budget follows it to the new channel, and the station stays up. It
@@ -6373,6 +6391,12 @@ channel with is therefore a setting, its **LoRa mode**, chosen by the operator
 | `xprs` | XPRS's own: spreading factor 7, 125 kHz, coding rate 4/5, an 8-symbol preamble, sync word `0x12`; 869.5 MHz in Europe (868.2 MHz in band g1), 903.9 MHz in the US, 917.0 MHz in Australia | XPRS packets, one per frame, as on every other bearer |
 | `meshtastic` | Meshtastic's default, "LongFast": spreading factor 11, 250 kHz, coding rate 4/5, a 16-symbol preamble, sync word `0x2B`, on Meshtastic's frequency for the region, 869.525 MHz in Europe | XPRS inside Meshtastic frames, and Meshtastic relayed and translated |
 | `meshcore` | MeshCore's default, measured off a node of theirs: spreading factor 8, 62.5 kHz, coding rate 4/5, a 16-symbol preamble, sync word `0x12`, 869.618 MHz in Europe | XPRS inside MeshCore frames, and MeshCore relayed and translated |
+
+Every mode carries channel presets, and the channel is a setting of its
+own: the same radio is sold matched for 433, 868 and 915 MHz, so `region:`
+takes a preset and `freq:` an exact channel (section 11.10), both at once
+and both remembered. A station says which it is on in its answers and in
+its `t:channel` beacon.
 
 Stations in different modes do not hear each other on LoRa, and still meet on
 every other bearer: the mode decides who shares the radio, not who is on the
