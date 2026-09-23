@@ -95,7 +95,7 @@ three decades of use showed to be limits:
 - **Delivery was hope.** A packet missed was a packet gone. XPRS adds custody
 , stations carry mail for the absent and hand it over with signed receipts
   (section 9), and history, so a station away for four days asks for the
-  days it missed (section 33.2).
+  days it missed (section 11.2).
 - **The internet side was one central system.** APRS-IS sees every packet,
   and everyone depends on it. XPRS replaces it with archivers each station
   CHOOSES, federated by directories rather than by copying each other's
@@ -572,7 +572,7 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `role` | `enum` | what a grant confers: `mod`, `sub`, or absent for a member |
 | `hide` | `enum` | what a moderator withdraws from view: `message` |
 | `mood` | `enum` | how the sender feels (section 16.1) |
-| `only` | `call` | narrows a replay to one callsign or group (section 33.2) |
+| `only` | `call` | narrows a replay to one callsign or group (section 11.2) |
 | `opt` | `labels` | the choices in a poll, two to six (section 17) |
 | `root` | `hex6` | the packet a thread hangs from (section 7.4) |
 | `size` | `qty` | how large a file is (section 7.7.1) |
@@ -598,7 +598,7 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `for` | `qty` | how long each window lasts |
 | `at` | `clock` | time of day a cycle is anchored to, UTC |
 | `seq` | `int` | position of this point within that track |
-| `kind` | `enum` | nature of an event, values per packet type (sections 15, 16); in `cmd:history` the packet type asked for, or a comma-separated list of them (section 33.2) |
+| `kind` | `enum` | nature of an event, values per packet type (sections 15, 16); in `cmd:history` the packet type asked for, or a comma-separated list of them (section 11.2) |
 | `sev` | `enum` | severity of a warning (section 24) |
 | `rad` | `qty` | radius of the area affected or asked about (sections 16, 17, 28) |
 | `since` | `time` | when the condition started, or will start |
@@ -611,7 +611,7 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `b` | `b64` | a small file's bytes, inline (section 7.7.4) |
 | `ih` | `label` | BitTorrent infohash, 40 hexadecimal characters (section 7.7.5) |
 | `have` | `b64` | what a station holds of a file: a chunk or piece bitfield, least significant bit first; or, the two stated exceptions, the word `full` and a fraction such as `412/900` (section 8.1) |
-| `off` | `qty` | byte offset a `cmd:file` transfer resumes from (section 33.2) |
+| `off` | `qty` | byte offset a `cmd:file` transfer resumes from (section 11.2) |
 | `x` | `b64` | sealed body |
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
 | `sig` | `base85` | signature |
@@ -1990,7 +1990,7 @@ a file is described (7.7.1), how a large one is verified in pieces and a folder
 of them is listed (7.7.2), how a whole folder is synchronised (7.7.3), how a
 small one rides the packets themselves (7.7.4, and 7.7.6 for one too big for
 that), how anyone asks who holds one (section 8, `q:have`), and how one is
-fetched or deposited (section 33.2, `cmd:file` and `cmd:put`).
+fetched or deposited (section 11.2, `cmd:file` and `cmd:put`).
 
 So a file reaches a station one of three ways, chosen by size and by what the
 pair's bearers will carry:
@@ -2025,7 +2025,7 @@ t:file f:X1QZ3N ts:2026-08-08_14:26:40 file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXi
 154 bytes. `m:` describes it, `tag:` files it under topics, and `size:` is a
 quantity with its unit like every other measurement in this format.
 
-**`size:` is the field that earns its bytes.** `cmd:file` (section 33.2) asks a
+**`size:` is the field that earns its bytes.** `cmd:file` (section 11.2) asks a
 station to send the content, and on a bearer that owes seconds of silence per
 packet the difference between a 240 kB photograph and a 40 MB video is the
 difference between a fetch and a mistake. Knowing the size first is how a
@@ -3257,7 +3257,7 @@ you" are different facts and a station coming back needs to tell them apart.
 
 **This exists because the alternative is expensive.** Without it the only way
 to learn whether a station holds anything is `cmd:history only:X kind:message`
-(section 33.2), which replays the mail itself, a page of packets, and a place
+(section 11.2), which replays the mail itself, a page of packets, and a place
 in the asker's hourly budget (section 22.2), to answer a question whose usual
 answer is nothing. A station returning to a valley asks every archiver in
 earshot before it asks one of them for contents.
@@ -3828,7 +3828,7 @@ carries.
 
 ### 11.2.1 What comes back
 
-The answer is the ordinary sequence of section 33.1, accepted, then done:
+The answer is the ordinary sequence of section 11.1, accepted, then done:
 
 ```
 132  t:result f:X3RLY7 d:X1BOA3 ts:2026-08-08_14:26:41 r:747ae8 code:202 sig:<60 characters>
@@ -4024,7 +4024,7 @@ t:command f:X1QZ3N d:X3RLY7 ts:2026-08-08_14:26:40 cmd:interpret n:3/3 sig:<60 c
 141, 141 and 199 bytes. Reassembled it is 266 bytes, which is why it split.
 
 This is the one command whose payload is `m:`, and it is an **explicit opt-in**
-rather than a hole in section 33.3. Everywhere else a bot reads `cmd:` and
+rather than a hole in section 11.3. Everywhere else a bot reads `cmd:` and
 `arg:` and never takes instructions from free text. A station that does not
 interpret natural language answers `404`, and one that does has said so by
 accepting this command word.
@@ -4059,7 +4059,7 @@ that is worth stating plainly rather than discovering later.
 A signature proves which callsign sent the text. It says nothing about whether
 the text is a good idea, and a model asked to interpret "open the north door"
 will do exactly as well with a sentence designed to talk it into something else.
-The allow-list of section 33.4 matters more here than anywhere in this document,
+The allow-list of section 11.4 matters more here than anywhere in this document,
 because it is the only thing standing between a stranger and the interpreter.
 
 **A model's output should not be the last check before a physical action.** Map
@@ -4080,7 +4080,7 @@ interoperate when the words for acting on them are few, fixed and shared.
 This section is that vocabulary in XPRS grammar.
 
 **`cmd:set` asks a device to make a state true**, and carries its parameters
-in the keys of this document, never in `arg:` (the rule of section 33.2):
+in the keys of this document, never in `arg:` (the rule of section 11.2):
 
 ```
 132  t:command f:X1A67X d:X1LAMP ts:2026-08-19_18:30:00 cmd:set state:on sig:<60 characters>
@@ -4125,7 +4125,7 @@ counterpart of a measurement key, `temp:` (section 15.3) reports what IS,
 
 **The result states what IS, not what was asked.** The keys of the command
 come back carrying the condition the device actually reached, and the
-`code:` table of section 33.1 needs nothing added:
+`code:` table of section 11.1 needs nothing added:
 
 ```
 151  t:result f:X1LAMP d:X1A67X ts:2026-08-19_18:30:05 r:1cc8af code:200 state:on level:40% sig:<60 characters>
@@ -4158,9 +4158,9 @@ owner holds, or the answer is `code:403`:
 156  t:result f:X1DOOR d:X1RD89 ts:2026-08-19_18:30:05 r:498c72 code:403 sig:<60 characters> m:not on the allow list
 ```
 
-The 300-second window and the derived-identifier idempotency of section 33.4
+The 300-second window and the derived-identifier idempotency of section 11.4
 are what keep a recorded `state:unlocked` from opening the door tomorrow,
-and carriers drop commands rather than park them (section 33.4), because
+and carriers drop commands rather than park them (section 11.4), because
 later is what an act must never be. A report is different: `state:pressed`
 from an unsigned doorbell is a claim like any observation, weighed like one
 (section 15.5), and acted on by a person rather than a mechanism.
@@ -4198,7 +4198,7 @@ any station airs them:
 66   t:observation f:X4PL3M state:off volt:23.8V ts:2026-08-19_18:40:00
 ```
 
-Commanding it is section 33.7 unchanged, because an `X4` station is a
+Commanding it is section 11.7 unchanged, because an `X4` station is a
 station:
 
 ```
@@ -4206,7 +4206,7 @@ station:
 141  t:result f:X4PL3M d:X1A67X ts:2026-08-19_18:41:02 r:44df54 code:200 state:on sig:<60 characters>
 ```
 
-The allow-list of section 33.4 is kept **per device**, on the controller,
+The allow-list of section 11.4 is kept **per device**, on the controller,
 configured by the device's owner: the neighbour trusted to run the pump is
 not thereby trusted to unlock the door, even when one ESP32 operates both.
 Everything else follows from what `X4` already is. The prefix tells a
@@ -4244,6 +4244,18 @@ The `url:` on an event names a still captured at the event, so a receiver that
 acts on the press has the door in front of it without a second exchange. The
 still behind that URL is the camera's business to keep fresh or expire.
 
+**These are broadcast, where section 11.7's doorbell addresses its owner.**
+Both are right, and the difference is what the reading is about. Section 15
+permits `d:` where a reading concerns one station alone, and a lock reporting
+that it is locked concerns the person who locked it. A camera at a shared door
+is the other case: the press is of use to everyone in the house, and to the
+station that will carry it to a phone that is out, none of whom are named on
+the packet. Addressing it would also put the owner's callsign on the air on
+every press, which section 11.9 otherwise takes care not to do, and would say
+who is being visited to anybody listening. A camera therefore broadcasts what
+happens at the door, and whoever hears it decides for themselves whether it is
+worth a person's attention.
+
 Asking on demand is the request of section 8, with two words this document adds
 to the closed `q:` list: `q:snapshot` for a current still, `q:stream` for the
 live view. The answer is an observation naming what was asked in `s:` and
@@ -4276,7 +4288,7 @@ the version it was carried up with, and a network of stations that can
 never be fixed is a network whose worst bug is permanent.
 
 **`cmd:update` asks a station to install firmware.** It is an actuation,
-so section 33.4 applies in full and without exception: unsigned or
+so section 11.4 applies in full and without exception: unsigned or
 unverifiable is discarded and never answered, a verified signer must be on
 the allow-list the owner holds or the answer is `code:403`, and the
 command expires with the 300-second window.
@@ -4362,7 +4374,7 @@ that explains why.
 
 **What this section does not do.** It does not say where firmware comes
 from, who may publish it, or what a version string means, those are the
-operator's, exactly as section 33.4 says authorisation is (the allow-list
+operator's, exactly as section 11.4 says authorisation is (the allow-list
 itself is set on the wire by section 11.9). And it defends nothing against
 somebody standing at the station with a cable, which is deliberate: the owner
 of a device is entitled to change what it runs, and a station that its owner
@@ -4427,13 +4439,20 @@ one its owner can repair, which is the position section 11.8 takes about
 firmware, and the same one is taken here. Selling the box is handing over the
 box: erase it, and the buyer claims it.
 
-**`owner:` is the allow-list of section 33.4, and only an owner may change it.**
+**`owner:` is the allow-list of section 11.4, and only an owner may change it.**
 It is a `path`, a comma-separated list of up to four callsigns, and the value
 replaces the list rather than adding to it: a list that no longer names the
 signer is a transfer, and a list that names four is full. A station with
 several owners obeys any of them, and where two disagree the later `ts:` wins.
 
-**What the owner sets, on `cmd:set`.** The command of section 33.7 already
+`owner:` holds up to four callsigns and `d:` holds one, so a device with
+several owners that wants to address a report (section 15) addresses the first
+in the list, and broadcasts when it would rather not choose. Broadcasting is
+the safer default and the one a camera takes (section 11.7.2): a reading sent
+to one of four owners is a reading the other three did not get, and no rule
+here makes the first the right one.
+
+**What the owner sets, on `cmd:set`.** The command of section 11.7 already
 carries its parameters in keys and answers with what IS, and a station's
 policy is a state like any other, so it takes three more keys and one it
 already has:
@@ -4453,7 +4472,7 @@ already has:
 A key that is absent is unchanged, so an owner adjusts one thing without
 restating the rest, and a `cmd:set` carrying only these keys and no `state:`
 is a complete command. The result carries all four back whatever the command
-carried, because a result states what IS (section 33.7), and the four together
+carried, because a result states what IS (section 11.7), and the four together
 are what is. A signer who is not an owner gets `code:403` for any of them, and
 `state:`, `level:` and `target:` are untouched by this section: a lamp's
 owner and the people allowed to switch it are not the same list, and section
@@ -4502,7 +4521,7 @@ will carry for it before spending airtime finding out:
 
 `q:policy` and `s:policy` are the words of section 8 doing what they always
 do, and the answer is an observation because that is what a state reported
-unasked-for or asked-for has been since section 33.7.
+unasked-for or asked-for has been since section 11.7.
 
 **A policy survives a reboot, and an old one cannot be replayed.** Section
 11.4 gives a command 300 seconds and a station's memory of one 600, which is
@@ -4894,7 +4913,7 @@ that already exists:
 t:command f:X1BOA3 d:X3RLY7 ts:2026-08-08_14:26:40 cmd:history since:2026-08-04_00:00:00 sig:<60 characters>
 ```
 
-153 bytes (section 33.2). Already metered by the airtime rules, already
+153 bytes (section 11.2). Already metered by the airtime rules, already
 refusable with `code:429`, and already the answer to "I was not here, what did I
 miss". Publishing adds no verb of its own.
 
@@ -4909,7 +4928,7 @@ from the format it queries.
 One reading rule makes the reachability question askable without any new word:
 **`only:` matches a callsign wherever the packet carries it**, as author, as
 addressee, or inside a list field (`hears:`, `hold:`, `via:`, `grant:`). It is a
-callsign and never a type; section 33.2's `kind:` names a type, and the two
+callsign and never a type; section 11.2's `kind:` names a type, and the two
 combine rather than compete. So "everything about X1BOA3" includes the gateway
 observations that list it as heard:
 
@@ -5398,7 +5417,7 @@ already falls back to `serve:archive`.
 ### 12.10 Two archivers meet
 
 A station that was away has a hole in its archive as wide as its absence, and the
-tool that fills it exists: `cmd:history` (section 33.2). This section adds only
+tool that fills it exists: `cmd:history` (section 11.2). This section adds only
 WHEN to use it on the archiver's own behalf.
 
 **On sighting**, an archiver that hears `serve:archive` from a station back in
@@ -5890,7 +5909,7 @@ t:service f:X3RLY7 pos:38.7810,-9.2043 serve:relay,archive ts:2026-08-08_14:26:4
 | `aprs` | gateways to APRS-IS |
 | `meshtastic` | gateways to a Meshtastic mesh on its LoRa channel (sections 3.2, 9.11.5) |
 | `nostr` | runs a NOSTR relay |
-| `files` | hosts content-addressed files: answers `q:have` (section 8.1) and `cmd:file`, and accepts `cmd:put` deposits within its budgets (section 33.2) |
+| `files` | hosts content-addressed files: answers `q:have` (section 8.1) and `cmd:file`, and accepts `cmd:put` deposits within its budgets (section 11.2) |
 | `devices` | operates automated devices, each an `X4` station of its own (section 11.7.1) |
 | `time` | has a clock worth trusting, usually from GNSS |
 | `weather` | publishes observations |
@@ -6010,7 +6029,7 @@ A listener reads one byte and knows which protocol it has. A stock Reticulum
 client connecting to the port works untouched; an XPRS client sends packets as
 lines of text, one packet per line, and receives the same. Everything on such
 a connection is an ordinary packet, a `t:ping` is answered with a `t:pong`, a
-`cmd:history` with the replay of section 33.2, so the socket adds no new
+`cmd:history` with the replay of section 11.2, so the socket adds no new
 vocabulary, only a wire.
 
 Two rules keep the demultiplexing honest, and they are load-bearing:
@@ -6341,7 +6360,7 @@ tuned to. Implementations follow this sequence and expect it of each other:
 5. **Work, then give the channel back.** The exchange runs (section 11.2.2's
    middle block); when it ends, or `until:` passes, whichever is first,
    everyone returns to the calling channel. A transfer the working channel
-   killed mid-way is resumed later with `off:` (section 33.2) on whatever
+   killed mid-way is resumed later with `off:` (section 11.2) on whatever
    lane the pair next shares; the commons is not the place to debug it.
 6. **Nobody came.** An inviter alone on the working channel at `until:`
    returns to the commons and treats the acceptance as overtaken by events,
@@ -6638,9 +6657,9 @@ t:observation f:X1BOA3 pos:38.6902,-9.4012 wave:1.8m seatemp:18.4C type:boat ts:
 | `odometer` | `qty` | distance travelled over the station's service life | distance |
 | `type` | `enum` | what the station is or is riding on, from the set in section 21.2 | |
 | `fw` | `text` | the firmware version this station is running (section 11.8) | |
-| `state` | `enum` | a device's principal condition, from the closed list in section 33.7 | |
-| `level` | `qty` | how far, when a condition is partial (section 33.7) | proportion |
-| `target` | `qty` | the setpoint a device holds a reading at (section 33.7) | |
+| `state` | `enum` | a device's principal condition, from the closed list in section 11.7 | |
+| `level` | `qty` | how far, when a condition is partial (section 11.7) | proportion |
+| `target` | `qty` | the setpoint a device holds a reading at (section 11.7) | |
 
 Radiation readings, ionizing and electromagnetic, are their own family,
 section 15.5.1.
@@ -7402,7 +7421,7 @@ broadcast medium means. What follows from it:
   authority over the result than anyone else; it simply usually hears more. If a
   final figure matters, the author publishes one as an ordinary `t:status` or a
   reply, signed, and it is a claim like any other claim.
-- **`cmd:history` improves a count** (section 33.2) and never completes it.
+- **`cmd:history` improves a count** (section 11.2) and never completes it.
 
 ### 17.5 A poll is not a secret ballot
 
@@ -8800,7 +8819,7 @@ packet **250 bytes**, on every transport.
 | `role` | `enum` | what a grant confers: `mod`, `sub`, or absent for a member |
 | `hide` | `enum` | what a moderator withdraws from view: `message` |
 | `mood` | `enum` | how the sender feels (section 16.1) |
-| `only` | `call` | narrows a replay to one callsign or group (section 33.2) |
+| `only` | `call` | narrows a replay to one callsign or group (section 11.2) |
 | `opt` | `labels` | the choices in a poll, two to six (section 17) |
 | `root` | `hex6` | the packet a thread hangs from (section 7.4) |
 | `size` | `qty` | how large a file is (section 7.7.1) |
@@ -8826,7 +8845,7 @@ packet **250 bytes**, on every transport.
 | `for` | `qty` | how long each window lasts |
 | `at` | `clock` | time of day a cycle is anchored to, UTC |
 | `seq` | `int` | position of this point within that track |
-| `kind` | `enum` | nature of an event, values per packet type (sections 15, 16); in `cmd:history` the packet type asked for, or a comma-separated list of them (section 33.2) |
+| `kind` | `enum` | nature of an event, values per packet type (sections 15, 16); in `cmd:history` the packet type asked for, or a comma-separated list of them (section 11.2) |
 | `sev` | `enum` | severity of a warning (section 24) |
 | `rad` | `qty` | radius of the area affected or asked about (sections 16, 17, 28) |
 | `since` | `time` | when the condition started, or will start |
@@ -8839,7 +8858,7 @@ packet **250 bytes**, on every transport.
 | `b` | `b64` | a small file's bytes, inline (section 7.7.4) |
 | `ih` | `label` | BitTorrent infohash, 40 hexadecimal characters (section 7.7.5) |
 | `have` | `b64` | what a station holds of a file: a chunk or piece bitfield, least significant bit first; or, the two stated exceptions, the word `full` and a fraction such as `412/900` (section 8.1) |
-| `off` | `qty` | byte offset a `cmd:file` transfer resumes from (section 33.2) |
+| `off` | `qty` | byte offset a `cmd:file` transfer resumes from (section 11.2) |
 | `x` | `b64` | sealed body |
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
 | `sig` | `base85` | signature |
@@ -8900,9 +8919,9 @@ packet **250 bytes**, on every transport.
 | `lifetime` | `qty` | how long the station has run in total, across every restart | duration |
 | `odometer` | `qty` | distance travelled over the station's service life | distance |
 | `type` | `enum` | what the station is or is riding on, from the set in section 21.2 | |
-| `state` | `enum` | a device's principal condition, from the closed list in section 33.7 | |
-| `level` | `qty` | how far, when a condition is partial (section 33.7) | proportion |
-| `target` | `qty` | the setpoint a device holds a reading at (section 33.7) | |
+| `state` | `enum` | a device's principal condition, from the closed list in section 11.7 | |
+| `level` | `qty` | how far, when a condition is partial (section 11.7) | proportion |
+| `target` | `qty` | the setpoint a device holds a reading at (section 11.7) | |
 
 ### Radiation (section 15.5.1)
 
@@ -9126,7 +9145,7 @@ names the reassembled packet rather than any part. Must be signed, expires
 after 300 s unless `until:` says otherwise, never carried, never shown as a
 message. Authentication is not authorisation, the allow-list is the bot's.
 
-`cmd:set` makes a device state true (section 33.7): `state:` from the closed
+`cmd:set` makes a device state true (section 11.7): `state:` from the closed
 list `on off open closed locked unlocked` (`motion clear pressed` are report
 only), `level:` for the partial degree, `target:` for a setpoint. The result
 echoes what IS. Unsigned is discarded; signed and unknown is `403`.
@@ -9535,6 +9554,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `t:` packet type as the first field | **implemented**; chat's own routing (a callsign, a `#group`, `!` for a position, empty for in-range) is now expressed as `t:` plus `d:`, not inferred from one overloaded field |
 | Derived identifiers | not implemented; the current wire hashes message content without a timestamp, so every `OK` collides, and carries a separate receipt identifier |
 | `ts:` on messages | **implemented** on the chat wire since 0.4.38: a message now states when it was written, so one that waited in a mailbox no longer shows the minute it arrived. A packet with no `ts:` is still read (section 15.7) |
+| Sections 11.7 and 11.7.2, a device reporting | **implemented** in the doorbell firmware (`firmware/models/reolink-d340w`), the first X4 device in this project that holds its own key rather than a controller holding it for it. The daemon on the camera signs and airs `state:pressed`, `state:motion` and `state:clear` with a `url:` to a still it serves itself, over the LAN, and it serves that still at API-HTTP.md's `/door/snapshot.jpg` and `/door/stream.mjpeg` by proxying the camera's own API so no credential is in a URL it hands out. The reporting half only: it answers nothing, because `q:` needs a listening socket it does not open. The phone reads these in the Things wapp (`apps/things`), which works out what a thing is from the `state:` word it used and the keys it sends, there being no capability field in this format to ask for |
 | `q:` and `s:` | not implemented; receipts exist, requests do not |
 | `via:` instead of rewriting `f:` | not implemented; a carrier currently retransmits under its own callsign, which breaks both authorship and the identifier |
 | Relay limit by packet type | not implemented; custody re-airs a fixed three times with no path recorded |
