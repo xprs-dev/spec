@@ -675,7 +675,7 @@ The type is fixed by this document and is never transmitted.
 | `coord` | two `dec` separated by a comma, latitude then longitude | `38.7223,-9.1393` |
 | `ratio` | two digits `1` to `9` separated by `/`, position then total | `2/3` |
 | `epoch` | two `int` separated by a dot, boot counter then seconds | `7.4210` |
-| `scope` | `local`, `global`, or ISO 3166-1 alpha-2 codes separated by commas | `PT,ES` |
+| `scope` | `local`, `regional`, `global`, or ISO 3166-1 alpha-2 codes separated by commas | `PT,ES` |
 | `lang` | an ISO 639-1 code, optionally `/` and a region | `PT/BR` |
 | `nick` | 1 to 16 ASCII letters, digits, `-` and `_` | `joao-brito` |
 | `clock` | `HH:MM:SS`, a time of day in UTC | `20:00:00` |
@@ -688,7 +688,10 @@ The type is fixed by this document and is never transmitted.
 | `text` | any bytes, spaces included | `heading south on the N8` |
 
 A value that does not match its declared type is skipped, as an unknown key is.
-A packet is never rejected as a whole because one field is malformed. One
+A packet is never rejected as a whole because one field is malformed. One field
+is read more carefully than skipped: a `scope:` word a receiver does not know
+stops it relaying the packet (section 9.11), because a skipped scope would
+read as global. One
 character is removed before the type is checked: the block character `█`
 marks a redacted portion (section 6.2.1), and a reader strips it and reads
 what remains.
@@ -2977,13 +2980,58 @@ what every packet in this document does.
 | `scope:` | Meaning |
 |---|---|
 | absent, or `global` | anywhere, on any bearer |
-| `local` | short-range bearers only: Bluetooth LE, WiFi Direct, WiFi Aware, and a local network |
+| `regional` | local and regional bearers only: never the internet, never a satellite |
+| `local` | local bearers only: Bluetooth LE, WiFi Direct, WiFi Aware, ESP-NOW and a local network |
 | an ISO 3166-1 alpha-2 code, uppercase | not relayed out of that country |
 
 Lowercase words and uppercase codes cannot be confused, which is the same
 convention callsigns and enums already follow everywhere else.
 
-### 9.11.1 local
+**Every bearer has a class, and the three words are the three classes.** The
+classes are defined on the `link:` vocabulary of section 15.6.1, so that the
+name a station gives a bearer in an observation is the name that decides what
+it may carry:
+
+| Class | `link:` values | What it reaches |
+|---|---|---|
+| local | `ble`, `wifi`, `espnow`, `lan` | the room, the building, the network a station is attached to |
+| regional | `lora`, `halow`, `vhf`, `uhf`, `hf`, `cb`, `pmr` | as far as a transmitter carries: a valley, a city, a coast |
+| global | `internet`, `satellite` | anywhere |
+
+`other` is global until the station knows better, which is the conservative
+reading. A bearer belongs to exactly one class, with the one exception section
+9.11.1 gives the operator for LoRa. The classes are ordered, local inside
+regional inside global, and a scope admits its own class and every narrower
+one: `regional` may go out on Bluetooth as well as on LoRa, `local` only on the
+local class.
+
+**A scope binds at both ends of every hop.** A station sends a packet only on a
+bearer whose class the scope admits. And it relays, carries, gates or serves
+from its archive only a packet it HEARD on a bearer the scope admits: a
+`local` packet that arrives over the internet or a satellite has already left
+its range, and is out of range at every station after that. Such a packet may
+be read and kept, as any packet may, and goes no further from here; an
+application does not show it among the traffic of the room its scope names,
+because it did not come from there. The check is needed because nothing on the
+wire records the bearers a packet crossed (`via:` names stations, and is not
+signed), while `scope:` is signed and counted in the identifier (sections 5
+and 6.1), so the author's word arrives intact and each station can only answer
+for its own two bearers.
+
+The other direction is not a violation. A global packet that arrived by
+satellite and is re-aired on Bluetooth is still global: it is shown with the
+global traffic and may go on to the internet again. The room a packet belongs
+to is the scope its author wrote, never the bearer that happened to deliver it.
+
+**A scope word a receiver does not know is a reason not to relay.** Section
+4.3 skips a value that does not match its type, and for most fields that is
+the safe reading. For this one it is not: a skipped `scope:` reads as global,
+and global goes to the internet. So a station that finds a lowercase word it
+does not recognise reads the packet and does not relay, carry or gate it, the
+same safe direction section 9.11.2 takes for a station that does not know
+where it is.
+
+### 9.11.1 local and regional
 
 ```
 t:message f:X1QZ3N d:LISBOA ts:2026-08-08_14:26:40 scope:local m:anyone got a 10 mm spanner?
@@ -3002,39 +3050,58 @@ certainly should not reach a relay that gates to the internet.
 
 **LoRa sits on the boundary, and the operator places it.** A LoRa link can be a
 building's own low-power mesh or a forty-kilometre shot across a valley, and no
-rule written here can know which one a given antenna is. Whether a station
-treats ITS LoRa as a local bearer is the operator's setting. The default is NOT
-local: a sender marking a packet `local` is trusting every station within
-earshot with the promise above, and the conservative reading is the only one a
-stranger's promise can survive. An operator who knows their LoRa reaches the
-campsite and nothing beyond may say so, and their station then carries `local`
-packets on it.
+rule written here can know which one a given antenna is. LoRa is regional.
+Whether a station ALSO treats its LoRa as a local bearer is the operator's
+setting, and the default is no: a sender marking a packet `local` is trusting
+every station within earshot with the promise above, and the conservative
+reading is the only one a stranger's promise can survive. An operator who knows
+their LoRa reaches the campsite and nothing beyond may say so, and their station
+then carries `local` packets on it. No other bearer moves between classes.
 
-**The approved room wires, end to end.** These three lines are the whole
+```
+t:message f:X1QZ3N ts:2026-08-08_14:26:40 scope:regional m:road to the bridge is flooded, go round by the mill
+```
+
+**`regional` keeps a packet on the air.** It may go on any local or regional
+bearer, a LoRa mesh across the valley, a HaLow link to the next village, a
+radio relay on the hill, and never onto the internet or a satellite. It is the
+neighbourhood that is too big for one building and too small for the world:
+a road closure, a lost dog, a market moved to Saturday. Section 6.4.1 still
+binds on licensed spectrum, and `regional` is no permission to put a
+self-generated callsign there.
+
+**The approved room wires, end to end.** These four lines are the whole
 chat interoperability story, a phone application, a captive-portal web
 page and a microcontroller's LCD all read and write exactly these, with no
 translation layer anywhere:
 
 ```
 t:message f:X16JK8 ts:2026-08-19_14:37:08 scope:local sig:<60 characters> m:hello from the Chat wapp, locally
+t:message f:X1QZ3N ts:2026-08-19_14:51:30 scope:regional m:anyone on the valley mesh tonight?
 t:message f:X9WEB ts:2026-08-19_14:58:01 m:round two global
 t:message f:X1QZ3N ts:2026-08-19_15:02:10 scope:local root:399227 r:8536fb sig:<60 characters> m:replying inside the local room
 ```
 
 The first is the local room: twelve bytes of `scope:` buy the whole privacy
 behaviour, everything else is an ordinary message packet. The second is the
-global room, which is simply the default. The third shows that threads
+regional room. The third is the global room, which is simply the default, and
+a country-scoped message belongs there too. The fourth shows that threads
 (section 7.4) compose with scope like any other field.
 
-**Applications show the two scopes as two conversations.** The `scope:local`
-traffic is the room of whoever is actually around, the marina, the building,
-the campsite, and the unmarked default is the conversation that travels. A
-chat that mixes them flattens exactly the distinction the field exists to
-draw.
+**Applications show the three scopes as three conversations.** The
+`scope:local` traffic is the room of whoever is actually around, the marina,
+the building, the campsite; `scope:regional` is everyone within reach of the
+air; and the unmarked default is the conversation that travels. A chat that
+mixes them flattens exactly the distinction the field exists to draw. A packet
+is filed by the scope its author wrote, never by the bearer it arrived on, and
+one heard out of range (section 9.11) is not filed in any of them. Safety
+traffic (`t:sos`, `t:warning`) is shown whatever its scope.
 
 **A `local` packet is not carried.** Section 9.4 exists to deliver somewhere
 else later, and somewhere else later is what `local` excludes. A carrier holding
-one drops it rather than taking it to another town.
+one drops it rather than taking it to another town. A `regional` packet may be
+carried, and is handed on only over local and regional bearers: never to an
+archiver or a carrier reached over the internet.
 
 ### 9.11.2 A country
 
@@ -3073,7 +3140,9 @@ the rules in section 6.1 do not reach it, and this is why it has to be
 said separately.
 
 **A gateway treats `scope:` as binding.** It never publishes a `local` packet at
-all, and never publishes a country-scoped packet outside that country. A
+all, never publishes a `regional` packet onto the internet (a gateway into
+another radio network may take it there, which is regional), and never
+publishes a country-scoped packet outside that country. A
 gateway that cannot determine where it is does not publish country-scoped
 traffic.
 
@@ -5137,7 +5206,7 @@ A writes to B. B is asleep. A is a telephone, and goes into a pocket.
    passed. **A live negotiation** — a `cmd:file` carrying the `have:` map of
    what the asker lacks right now, or the `t:result` answering one — asks for
    bytes on behalf of somebody who has stopped waiting. `scope:local` is never
-   held at all (13.11.1), and a group has no mailbox (12.8.1).
+   held at all (9.11.1), and a group has no mailbox (12.8.1).
 
 3. **The archiver delivers when it can reach B**, not only when it hears B.
    Section 12.8.1's trigger is the packet from B itself, which is the right
@@ -6457,7 +6526,7 @@ translates between the two (section 9.11.5); it says `meshtastic` in its
 **In `meshcore` mode:**
 
 ```
-114  t:channel f:X3DCK0 freq:869.525MHz mode:lora bw:250kHz ch:public power:14dBm kind:gateway ts:2026-09-20_12:00:00
+112  t:channel f:X3DCK0 freq:869.525MHz mode:lora bw:250kHz ch:public power:14dBm kind:gateway ts:2026-09-20_12:00:00
 139  t:service f:X3DCK0 serve:archive,meshcore count:212 ts:2026-09-20_12:00:00 sig:<60 characters>
 ```
 
@@ -9188,10 +9257,13 @@ of preference. Several coexist, each optionally bounded by `since:` and
 and `remove:mailbox`. All of it must be signed, and an unverifiable one
 ignored.
 
-`scope:` limits where a packet goes: absent or `global` anywhere, `local` only
-on BLE, WiFi Direct, WiFi Aware and a LAN, or ISO country codes. Not carried
-when `local`, and binding on gateways. Reception is never restricted, only
-relaying. A group is an address, not a boundary, only `x:` keeps content
+`scope:` limits where a packet goes: absent or `global` anywhere, `regional`
+on local and regional bearers (LoRa, HaLow, radio) and never the internet or a
+satellite, `local` only on BLE, WiFi Direct, WiFi Aware, ESP-NOW and a LAN, or
+ISO country codes. It binds at both ends of a hop: a packet heard on a bearer
+wider than its scope goes no further. An unknown scope word stops relaying.
+Not carried when `local`, and binding on gateways. Reception is never
+restricted, only relaying. A group is an address, not a boundary, only `x:` keeps content
 private.
 
 ### Catching up, and fetching
@@ -9588,7 +9660,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `t:channel` | not implemented |
 | Carrying toward a place (`dest:` on a message) | not implemented; custody currently carries only to a known callsign |
 | `urg:` | not implemented |
-| `scope:` | not implemented; every bearer currently forwards everything it can |
+| `scope:` | `local` is enforced on the sending bearer by the app and the station firmware; `regional`, the arrival check and the unknown-word rule are specified and not yet implemented |
 | `lang:` | not implemented |
 | `nick:` and signed identity | not implemented; identity is announced unsigned today |
 | `t:mailbox` | **implemented**: a receiving station records verified declarations (windows and `remove:mailbox` included, `lib/services/xprs/xprs_archive.dart`), and a station now COMPOSES one naming its own archivers whenever that list changes, which is what lets a recipient send its receipt to the sender's holder (12.8.3); custody consults the declaration when choosing where to hand mail next |
