@@ -3985,7 +3985,7 @@ frames between them belong to the bearer (here BLE's session protocol,
 XPRS asks and receipts, the bulk lane moves bytes, and neither does the
 other's job. X1QZ3N deposits a 240 kB photograph with X1RD89:
 
-```,
+```
 advert channel (XPRS) -----------------------------------------------
 X1QZ3N-> t:command f:X1QZ3N d:X1RD89 ts:2026-08-17_12:00:00 cmd:put file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg size:240kB sig:<60 characters>
 X1RD89-> t:result f:X1RD89 d:X1QZ3N ts:2026-08-17_12:00:03 r:a91f04 code:202 sig:<60 characters>
