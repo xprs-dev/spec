@@ -3229,6 +3229,26 @@ the gateway turns it into clear XPRS, and on Meshtastic the key a gateway
 presents for a callsign is derived from the callsign, so that every gateway
 can deliver it.
 
+**Time crosses as text, when it matters.** The other network has no field
+for when a message was written: a Meshtastic frame carries addresses, an
+identifier and hop counts, and its reader sees the moment the frame reached
+their own radio, stamped by their own clock. Three rules follow. A gateway
+with no clock translates nothing it merely heard into the other network, and
+nothing in the first moments after it starts: the bearers keep old packets
+moving (carriers, section 9.4; archives, section 13; a Bluetooth
+advertisement that repeats), and a gateway that could not tell them from news
+would hand them to every reader there as said just now. Its own user's words
+go regardless: a person is waiting, and what they just typed is new. A
+message older than two minutes when it crosses, carried or relayed from far,
+says its own time first, `[14:26] see you at the quay`, in the gateway's local
+time when it knows its zone (section 11.10) and in UTC with a `Z` when it does
+not, with the day in front when it is not the reader's today; two minutes, so
+a live conversation crosses clean. And old news does not cross at all: half
+an hour for a broadcast, six hours for a direct message. Coming in, a
+translation is dated to the minute with the gateway's clock (above), or with
+its `epoch:` (section 15.7) when it has none, so that two gateways still
+compose one packet.
+
 ### 9.12 Where to leave mail for me
 
 `t:mailbox` names the stations a sender should hand mail to when the recipient
