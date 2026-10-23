@@ -4783,6 +4783,21 @@ advertisement repeats until its sender stops it and a retransmission is not a
 replay. Setup keys and policy keys are not mixed in one command, and one that
 mixes them is `code:400`.
 
+**Where a clockless station gets the time.** From the network, once it
+reaches one, and until then from its owner: the `ts:` of a command that
+verified against the owner's key is the best guess the box has, so it takes
+it, and the rule above already makes each later than the last. The network's
+time replaces the owner's the moment it arrives, and nothing replaces the
+network's. Nobody else's `ts:` moves a clock. A stranger's packets date
+themselves, never the station, because a station whose clock can be set from
+the air can be made to date its own words wrongly, to refuse its owner's
+commands as stale (section 11.4), and to carry old traffic as news. A station
+that must run with neither network nor owner in range may be set to take,
+while it has no clock at all, the time several verified neighbours agree on;
+that is a choice its owner makes, not a default, and it only ever fills a
+void. A station that obtains the time sends one packet carrying both forms
+(section 15.7).
+
 **Every answer goes back the way the command came.** A phone that sent a
 command over Bluetooth is listening on Bluetooth, and one on the station's
 own access point is on that network. A station without Bluetooth, and a
