@@ -467,12 +467,13 @@ MC + the first four bytes of its public key, the same way      a MeshCore node
 ```
 
 ```
-105  t:message f:MTA1B2C3D4 ts:2026-09-19_12:04:00 zmid:a1b2c3d44683c668 via:X3DCK0 m:anyone on the XPRS side?
+120  t:message f:MTA1B2C3D4 ts:2026-09-19_12:04:00 scope:regional zmid:a1b2c3d44683c668 via:X3DCK0 m:anyone on the XPRS side?
 73  t:message f:X1QZ3N d:MTA1B2C3D4 ts:2026-09-19_12:05:10 m:yes, on the quay
 ```
 
 The first is a Meshtastic user's message on the public channel, as the
-gateway `X3DCK0` wrote it; the second an XPRS user's answer, direct, which
+gateway `X3DCK0` wrote it, `scope:regional` because that channel is one
+valley's air (section 9.11.5); the second an XPRS user's answer, direct, which
 any gateway in range carries back. Four rules:
 
 - **The form is matched whole** (section 3.0.1): two letters, eight digits,
@@ -1558,7 +1559,7 @@ network gives its node, reduced to this field's characters, in an unsigned
 `t:identity`:
 
 ```
-107  t:identity f:MTA1B2C3D4 ts:2026-09-19_12:04:00 scope:local nick:Maria-boat zmid:a1b2c3d41581bdbe via:X3DCK0
+110  t:identity f:MTA1B2C3D4 ts:2026-09-19_12:04:00 scope:regional nick:Maria-boat zmid:a1b2c3d41581bdbe via:X3DCK0
 ```
 
 A receiver may show it, marked as the other network's own name for the node,
@@ -3095,7 +3096,10 @@ air; and the unmarked default is the conversation that travels. A chat that
 mixes them flattens exactly the distinction the field exists to draw. A packet
 is filed by the scope its author wrote, never by the bearer it arrived on, and
 one heard out of range (section 9.11) is not filed in any of them. Safety
-traffic (`t:sos`, `t:warning`) is shown whatever its scope.
+traffic (`t:sos`, `t:warning`) is shown whatever its scope. The Regional
+room is also what a gateway shares with a neighbouring radio network
+(section 9.11.5): what is said there may be read on that network's public
+channel, in the clear, and that channel's talk appears here.
 
 **A `local` packet is not carried.** Section 9.4 exists to deliver somewhere
 else later, and somewhere else later is what `local` excludes. A carrier holding
@@ -3141,8 +3145,10 @@ said separately.
 
 **A gateway treats `scope:` as binding.** It never publishes a `local` packet at
 all, never publishes a `regional` packet onto the internet (a gateway into
-another radio network may take it there, which is regional), and never
-publishes a country-scoped packet outside that country. A
+another radio network takes it there, which is regional, and takes nothing
+wider: that network's channel is one valley's air, shared with everybody on
+it, and the conversation that travels the internet does not belong there),
+and never publishes a country-scoped packet outside that country. A
 gateway that cannot determine where it is does not publish country-scoped
 traffic.
 
@@ -3192,10 +3198,19 @@ that honest and keep two gateways from saying the same thing twice.
   it runs the loop check of section 9.2, and a reader sees who translated.
 - **Unsigned, always** (section 3.2). The gateway never signs another
   network's words as though they were its own.
-- **The other network's consent decides the scope.** A Meshtastic message
-  whose sender did not allow it onto the internet (the "OK to MQTT" choice
-  that network gives its users) arrives `scope:local`: the short-range
-  bearers carry it and no gateway publishes it (section 9.11.3).
+- **The other network's channel is a regional bearer.** What is said on it
+  arrives `scope:regional`, in the Regional room, whatever its sender chose
+  about the internet: regional never reaches the internet (section 9.11.1),
+  so the consent that network asks of its users (Meshtastic's "OK to MQTT")
+  is honoured either way, and one valley's talk lands among the people
+  within reach of the air rather than in the conversation that travels. A
+  direct message to an XPRS callsign is for one person wherever they are:
+  it travels (no scope) when its sender allowed the internet, and stays on
+  the air (`scope:regional`) when not. In the other direction only the
+  Regional room crosses onto the channel (section 9.11.3), never marked as
+  fit for the internet, and each sender gets a share of the gateway's hour
+  so that one busy person cannot spend it; a direct message crosses
+  whatever its scope but `local`.
 - **Two gateways, one packet.** The gateway dates the packet to the minute
   and carries the other network's own identifier of the message in a
   private key (this implementation: `zmid:`), so two gateways that hear the
@@ -3214,7 +3229,7 @@ that honest and keep two gateways from saying the same thing twice.
   positions and the other network's machinery do not.
 
 ```
-132  t:message f:MTA1B2C3D4 d:X1QZ3N ts:2026-09-19_12:06:00 scope:local r:7108b6 zmid:a1b2c3d4bc4c2495 via:X3DCK0 m:thanks, see you there
+135  t:message f:MTA1B2C3D4 d:X1QZ3N ts:2026-09-19_12:06:00 scope:regional r:7108b6 zmid:a1b2c3d4bc4c2495 via:X3DCK0 m:thanks, see you there
 ```
 
 A reply keeps its thread: the gateway remembers which of the other network's
@@ -6573,9 +6588,10 @@ the gateway translates. A station also relays MeshCore's own
 traffic by MeshCore's rules, and a gateway translates between the two
 (section 9.11.5); it says `meshcore` in its `serve:` only in this mode.
 
-MeshCore asks its users nothing about the internet, so there is no consent
-to read (section 9.11.5) and everything translated from it arrives
-`scope:local`: the short-range bearers carry it and no gateway publishes it.
+MeshCore asks its users nothing about the internet, and its public channel
+is one valley's air like Meshtastic's (section 9.11.5), so everything
+translated from it arrives `scope:regional`: the air carries it, the
+Regional room shows it, and no gateway publishes it.
 Its channel messages are not signed and name their sender only by a name, so
 one crosses only under the address of a node whose advert the gateway heard
 carrying that name; a name nobody has claimed is not an address and the

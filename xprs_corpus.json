@@ -50,9 +50,9 @@
 "id": "6ad6e3"
 },
 {
-"wire": "t:message f:MTA1B2C3D4 ts:2026-09-19_12:04:00 zmid:a1b2c3d44683c668 via:X3DCK0 m:anyone on the XPRS side?",
-"bytes": 105,
-"id": "7ceae7"
+"wire": "t:message f:MTA1B2C3D4 ts:2026-09-19_12:04:00 scope:regional zmid:a1b2c3d44683c668 via:X3DCK0 m:anyone on the XPRS side?",
+"bytes": 120,
+"id": "f92489"
 },
 {
 "wire": "t:message f:X1QZ3N d:MTA1B2C3D4 ts:2026-09-19_12:05:10 m:yes, on the quay",
@@ -180,9 +180,9 @@
 "id": "5c2ef9"
 },
 {
-"wire": "t:identity f:MTA1B2C3D4 ts:2026-09-19_12:04:00 scope:local nick:Maria-boat zmid:a1b2c3d41581bdbe via:X3DCK0",
-"bytes": 107,
-"id": "560357"
+"wire": "t:identity f:MTA1B2C3D4 ts:2026-09-19_12:04:00 scope:regional nick:Maria-boat zmid:a1b2c3d41581bdbe via:X3DCK0",
+"bytes": 110,
+"id": "34399a"
 },
 {
 "wire": "t:identity f:X1QZ3N ts:2026-08-08_14:26:40 nick:joao file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg sig:KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK m:sailing the Algarve coast",
@@ -530,9 +530,9 @@
 "id": "b42027"
 },
 {
-"wire": "t:message f:MTA1B2C3D4 d:X1QZ3N ts:2026-09-19_12:06:00 scope:local r:7108b6 zmid:a1b2c3d4bc4c2495 via:X3DCK0 m:thanks, see you there",
-"bytes": 132,
-"id": "282e61"
+"wire": "t:message f:MTA1B2C3D4 d:X1QZ3N ts:2026-09-19_12:06:00 scope:regional r:7108b6 zmid:a1b2c3d4bc4c2495 via:X3DCK0 m:thanks, see you there",
+"bytes": 135,
+"id": "09f1c8"
 },
 {
 "wire": "t:mailbox f:X1QZ3N ts:2026-08-08_14:26:40 hold:X3RLY7,X32DVA sig:KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK",
