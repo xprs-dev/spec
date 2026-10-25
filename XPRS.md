@@ -1672,6 +1672,18 @@ t:identity f:CT1ABC ts:2026-08-08_14:26:40 k:npub1qz3n7fu9j9uenmyva7ha6x9eqwymyt
 171 bytes. From then on their packets can carry `sig:` and a receiver can check
 that the operator who announced that key wrote them.
 
+**One key may bind several issued callsigns.** Operators who are licensed
+in more than one jurisdiction hold more than one: `CT1ABC` at home,
+`EA/CT1ABC` across the border. Each is bound by its own identity packet, all
+with the same `k:`. A packet still carries exactly one callsign in `f:`, the one the
+operator chose for it. An implementation keeps one of them as the default and
+SHOULD let a conversation keep the callsign it began under. A reply to a 1:1
+addressed to `EA/CT1ABC` goes out as `EA/CT1ABC`, and a receipt names the callsign
+the message was addressed to. A station answers to every callsign it has bound.
+Section 6.4.1 applies to each callsign separately, in the jurisdiction that issued it.
+Choosing the callsign that is lawful for where the transmitter stands is the operator's
+act, never inferred from a position.
+
 **Be exact about what this proves**, because the temptation to read more into it
 is strong. The self-signature proves the sender holds the private key for the
 announced `npub`. It proves nothing whatever about entitlement to `CT1ABC`: an
@@ -5185,17 +5197,35 @@ order:
 1. X's own declaration (section 9.12): the recipient's word beats every
    observation. This is the first time `hold:`'s preference order is consumed
    rather than merely stored, and it is consulted first.
-2. The gateway whose gossip entry for X is freshest (section 12.9.4): a station
-   that heard X five minutes ago on LoRa is one hop from delivering, whatever
-   continent this holder is on.
+2. **Every gateway whose live sighting of X is fresh** (section 12.9.4's L3,
+   inside its TTL): a station that heard X five minutes ago on LoRa is one hop
+   from delivering, whatever continent this holder is on, and when three
+   stations say so, all three get a copy. Each copy is its own custody trail
+   and costs the holder one directed send; the one receipt X signs releases
+   every copy (section 9.7.1), so the extra copies buy delivery by whichever
+   gateway actually meets X and cost nothing afterwards. The place X was LAST
+   seen (L2) is used only when nothing is live, and only the freshest of it.
 
 The hand-off is CUSTODY (section 6.3), not content sync: the author's packet
 travels byte for byte with its signature, `via:` gains the holder's callsign,
 the section 6.1 budget and 6.2 loop check apply, and section 12.8's disclosure
-rule stands. **Once per holder**: a packet is forwarded one time, and one that
-comes back (per `via:`) is not forwarded again. This migrates the mail toward the
-recipient's radio horizon while both parties sleep, the whole difference between
-a mailbox and a pile.
+rule stands. **Once per holder and gateway**: a packet is forwarded one time to
+each gateway, one that comes back (per `via:`) is not forwarded again, and a
+gateway that reports X LATER still gets its copy, because the report is the
+event the holder was waiting for. **A holder that can reach X itself forwards
+nothing**: it is the gateway, and the first paragraph delivers. Without that
+rule a gateway handed a copy over the internet asks an always-on archiver where
+X is while X is beaconing at it. This migrates the mail toward the recipient's
+radio horizon while both parties sleep, the whole difference between a mailbox
+and a pile.
+
+**And the gateway must have said so.** A hearing that stays on the radio
+informs nobody on the internet. A gateway therefore deposits its own signed
+`t:observation` with the archivers it chose (section 12.1, as an addressed copy
+each, section 12.12.2), at once when a station appears at its ear that its last
+report did not name and otherwise on a period, together with its `t:identity`
+so the claim verifies (section 12.9.4: an unverifiable claim feeds nothing). A
+gateway that hears nobody deposits nothing.
 
 ### 12.8.2 Draining a backlog, and what a holder must remember
 
@@ -5753,10 +5783,12 @@ a radio.** In the order a message meets them:
 2. **Consult.** The holder consults its gossip for X1BOA3 (section 12.9.4): the
    recipient's declaration first, the freshest live sighting second, the visit
    history third. A holder with nothing asks an always-on archiver.
-3. **Forward.** The held wire moves as custody toward the named gateway or
-   declared mailbox (section 12.8.1), signed by its author, `via:` growing,
-   loop-checked, once per holder. It can cross the internet on one hop and a LoRa
-   hill on the next; every hop stores, so nothing is lost to a link down today.
+3. **Forward.** The held wire moves as custody toward the declared mailbox and
+   every gateway with a fresh sighting (section 12.8.1), signed by its author,
+   `via:` growing, loop-checked, once per holder and gateway. It can cross the
+   internet on one hop and a LoRa hill on the next; every hop stores, so nothing
+   is lost to a link down today, and a report that arrives after the mail did
+   moves it then.
 4. **Deliver.** The gateway that actually hears X1BOA3 releases the mail the
    moment it does (section 12.8.1), and the receipt (section 9.7) walks back
    through every holder and clears them all.
@@ -9659,7 +9691,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 11.10 setting up a station (`ssid:` and `pass:` sealed, `wifi:`, `nick:`, `zone:`, `ap:`, `key:new`, `nsec:`; the claim and the ask carrying `k:`) | **implemented** on the ESP32 station (`common/xprs_app`: `cmdset_apply`, `setup_apply`, sealed bodies opened by `common/xprs_sig/xprsseal.c` after the signature and the allow-list), in the app core (a `$type:"secret"` field the host never stores, commands never deposited with an archiver, a station's key learned from its ask) and in the Firmwares wapp (`apps/firmwares`). Bench-validated on an ESP32-C3 and an Android phone over the station's hotspot: claim, stats, name and zone, a sealed network joined in a second; then, with the station on the network it was given, a new key followed through the restart. The Bluetooth leg was shown on a T-Dongle-S3 (2026-09-12): the phone's claim, name, stats and a sealed WiFi password each answered on the first airing at -49 dBm. The same station was set up from a desktop over the LAN, with a wrong password answered `500 m:wrong password` from the network the station went back to, and a `key:new` followed through the restart. The ESP32-C3 hears that phone at -96 to -100 dBm and decoded none of its frames; it is set up over its hotspot. A station that answers over the LAN also sends the answer straight to the address the command came from, because its broadcasts stopped reaching a phone on its hotspot once it had joined another network |
 | Section 9.1 relay budget, 9.2 loop check | **implemented** in the codec (`xprsMayRelay`, `xprsWouldLoop`); nothing transmits `via:` yet, so nothing calls them on the air |
 | Section 9.11.3, `scope:local` is never carried | **implemented**; refused at custody admission in `MeshCustodyDelegate` |
-| Section 12.8.1 automated return leg (release on hearing, forward toward gossip) | **implemented** on the Flutter node (funnel-triggered release, `XprsForwarder` with `via:` and the loop check) and in the shared ESP32 app (release-on-hearing off the seen funnel, paced re-air, receipt purge); the T-Dongle keeps its original `blemesh_scf_*` loop. Bench-validated end to end |
+| Section 12.8.1 automated return leg (release on hearing, forward toward gossip) | **implemented** on the Flutter node (funnel-triggered release, `XprsForwarder` with `via:` and the loop check) and in the shared ESP32 app (release-on-hearing off the seen funnel, paced re-air, receipt purge); the T-Dongle keeps its original `blemesh_scf_*` loop. Bench-validated end to end. Since 2026-10-25 the Flutter forwarder sends to EVERY gateway with a fresh live sighting (one copy each, remembered per gateway), re-runs when gossip gains a new gateway for a held recipient (`XprsGossip.onSighting`), and forwards nothing for a recipient it can reach itself; the ESP32 archiver still picks one gateway. Proven on the three-station bench (`test/xprs_reach_anywhere_sim_test.dart`): a BLE-only station reached from the internet through the phone that reported hearing it, two reporters both served and released by one receipt, mail deposited before any report moving when the report arrives |
 | Section 12.9.4 gossip (layers, budgets, always-on archivers) | **implemented** on the Flutter side (`xprs_gossip.dart`: L2/L3 tables, K/G caps, signer quotas, byte budget, the always-on-archiver mode and the miss-path ask) with DoS-probe unit tests; the shared ESP32 app keeps the need-to-know ring. Always-on is a LOCAL budget setting in both (`index_always_on` on a station, Always on in the app), never announced: each side reads a peer's depth off `count:` and `uptime:` instead, and both stopped airing and parsing `serve:archive,super` in 2026-09 |
 | Section 12.12 reaching a callsign from anywhere | **implemented and bench-validated**: an internet sender on a foreign network reached a WiFi-less BLE-only pocket through deposit, gossip, forward and release-on-hearing, with signatures intact at every hop |
 | Section 12.12.1 constrained internet transports (directed replies, directed asks, deposit, sender-parks-own-mail) | **implemented** on the Flutter side; specified after being proven necessary on public hubs |
@@ -9674,10 +9706,10 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Receipts and carrier release | implemented, for receipts that were asked for with `q:` |
 | Section 12.7, an archiver holding mail | **implemented** (`XprsMailbox`): a station deposits with the archivers it named, the archiver holds what has no receipt and re-offers it when the recipient reappears, and both ends send receipts to the sender's declared holder so it stops. `MeshStore` custody and the LXMF propagation mailbox remain the neighbouring mechanisms for their own lanes |
 | Section 36, publishing to chosen archivers | **specified, not implemented.** Every piece it is built from exists, the signed-record discipline, the append-only log with an (epoch, seq) cursor, archiver-to-archiver catch-up and archivers as the DHT's anchors are all live for FILES (`files/dht/`, `social/relay_node.dart`), but nothing yet keeps a publication log, pushes packets to a chosen archiver, or answers a query from their fields. The section deliberately adds no packet type and no key, so there is nothing on the wire to implement: the work is all plumbing |
-| Section 12.1, gateway reachability publications (`observation`/`identity` to an archiver) | **specified, not implemented** as a push; the raw material is live, every phone beacons `hears:` and the ESP32 digipeats, but no gateway publishes its observation to an archiver and no archiver answers for one |
-| Section 12.6, `only:` matching inside list fields | **partly implemented**: the shipped history responder matches `only:` against author and addressee (`xprs_archive.dart` query); `hears:`/`hold:`/`via:`/`grant:` containment is not searched yet |
+| Section 12.1, gateway reachability publications (`observation`/`identity` to an archiver) | **implemented** as a push on both reference stations: the ESP32 station deposits one signed observation per turn with its archivers (`air_signed_observations`), and the Flutter node deposits one per radio (`XprsHearsReporter`, `MeshService._reportHeard`) at once when a station its last report did not name is heard, else every five minutes, with its `t:identity` every half hour so the archiver can verify the claim. The archiver feeds a verified claim into its gossip off the internet lane and routes by it (12.8.1) |
+| Section 12.6, `only:` matching inside list fields | **partly implemented**: the shipped history responder matches `only:` against author, addressee and, for observations, the `hears:` list (`xprs_archive.dart` query); `hold:`/`via:`/`grant:` containment is not searched yet. The asking side is automated since 2026-10-25 (`XprsFetch`): a wapp reading one station's messages makes the core ask the archiver that answered for it last, then the chosen ones, following a `404 m:try` one hop and a `206` a few pages; the rows that answer are kept on the followed shelf ("what you asked for, you keep"), which is what lets a pocket phone hold a stranger's public words it went looking for |
 | Section 12.8, sealed-mail release to a hearing gateway | **specified, not implemented**; the nearest live relatives are the chat iGate mailbox (mail pulled from APRS-IS by an in-range station) and MeshStore custody, neither of which is driven by a published `hears:` claim |
-| Section 12.9, `serve:archive` and the XDIR1 directory exchange | **specified, not implemented**; the philosophy already ships for files, `pointer_sync.dart` gossips signed ADDRESSES between file-archivers and re-verifies on merge, never copying content, but no station publishes a callsign directory or answers a miss with `m:try` |
+| Section 12.9, `serve:archive` and the XDIR1 directory exchange | **partly implemented**: `serve:archive` is announced and read, and a miss answers `code:404 m:try` naming the gateways gossip knows HEARD the callsign (the Flutter and ESP32 history responders both). The XDIR1 directory itself is not built, so `m:try` names who heard a station rather than who KEEPS its publications, and an asker following it one hop reaches a hearer that may hold nothing. `pointer_sync.dart` gossips signed ADDRESSES between file-archivers and re-verifies on merge, never copying content |
 | Section 6.2.1, redacted packets (`xr:`) | **implemented**: the composer parses `((...))`, derives the slow key and builds the bars and the `xr:` blob in the core (`XprsCrypto.redact/restore`, `hal_xprs_redact`/`hal_xprs_unlock`), and a reader opens one at a tap, the passphrases that worked being remembered in the profile's encrypted store. Chat composes a redacted message in a 1:1, a closed group and the Local room; the wire is addressed there and scoped (`scope:local`) here. What is not implemented is redaction of the FIELDS the table permits (`pos:`, telemetry, `title:`): only `m:` is marked today |
 | Section 14.7, working-channel invitations | **specified, not implemented** as packets; the dance itself ships in binary for one pair of bearers, the WiFi-Direct negotiation (BLE subtype `0x57` ADVERT/REQ/OFFER, `docs/ble5.md`) coordinates exactly this move from the shared advert channel to a private fast lane, and 14.7 is that handshake generalised to every bearer, in text, signed |
 | Section 3.1, one person on several devices | **specified, not implemented.** Nothing numbers a device today: a station wears its bare callsign, and the chat wapp matches `d:` against that alone. The pieces the rule needs are already on the air, a beacon carries `f:` and `lx:`, so a device can see a sibling and tell it apart, but no code adopts a suffix, prefers the conventional number for its `type:`, or refuses a command addressed to a person |
@@ -9735,7 +9767,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `root:` on a reply | not implemented; the chat wapp threads by parent pointer only (`docs/aprs-xt.md`), so a lost middle orphans the rest |
 | `t:file` and `size:` (now also `name:`, `ph:`, `kind:folder`, `count:`) | not implemented as a packet; the equivalent exists as NOSTR kind-1063 metadata indexed in FTS5 (`reticulum-dart/doc/file-sharing.md`) |
 | `link:`, `busy:` and `txtime:` | not implemented; the Reticulum side tracks announce cadence and the LoRa drivers know the duty cycle, but nothing measures or publishes channel occupancy |
-| `hears:` | not implemented; `hal_rns_nodes` lists observed nodes but, per `docs/store-and-forward.md`, a hub replays its whole announce cache so the list is not "heard directly" |
+| `hears:` | **implemented**: every phone beacon (BLE and LAN) and every ESP32 beacon carries who the station heard directly, signed, cut to the bearer's budget with `peers:` the true total (15.6.4), and the same claim is deposited with the station's archivers (12.1). An earlier note here said the opposite; it described `hal_rns_nodes`, which lists Reticulum announces and is not this field |
 | `t:report` | not implemented; the chat wapp has moderation ops but no way for an ordinary station to flag anything |
 | `add:repost` | not implemented; the chat wapp has reactions (`add:like`) and no repost |
 | `t:place` | not implemented; nothing in the codebase reports a thing that is not the sender |
