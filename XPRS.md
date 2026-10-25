@@ -4886,7 +4886,10 @@ learns which is which by asking, so the format needs no word to rank them.
 what it keeps and for whom: their own traffic, the callsigns they follow,
 stations heard nearby, or anyone, under a quota. Silence is not consent: a
 station holds nothing for strangers until its operator says so (section 22.2),
-and may decline anything offered.
+and may decline anything offered. Holding is what that sentence governs:
+keeping the three room conversations a station shows its own operator
+(section 9.11.1), under a quota, makes it nobody's archiver and obliges it to
+serve nothing.
 
 Three settings say it, and one implementation (the XPRS app) names them the way
 a person would: what is **mine** is kept unconditionally; **the people I follow**

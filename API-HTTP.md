@@ -91,6 +91,11 @@ Query parameters, all optional:
 - `only` -- one packet type name (`message`, `observation`, `status`, ...).
 - `call` -- only packets FROM this callsign (base form matches suffixed).
 - `dir` -- `in` (heard) or `out` (this station transmitted it).
+- `room` -- `local`, `regional` or `global`: one chat room (XPRS.md 9.11),
+  undirected records heard in range, by the scope their author wrote before
+  `m:` (no scope, `scope:global` or a country is `global`). A page asks a room
+  at a time so one busy room cannot fill the window; an unknown room matches
+  nothing.
 - `limit` -- rows to return; default 30, cap 200.
 
 ```json
