@@ -1590,12 +1590,11 @@ binding and the decoration together come to 262 bytes, which does not fit.
 198  t:identity f:X1QZ3N ts:2026-08-08_14:26:40 nick:joao file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg sig:<60 characters> m:sailing the Algarve coast
 ```
 
-The decoration itself may be split the same way, for the same reason: the
-example above is 198 bytes, and the smallest advertisement a radio controller
-in the field carries is 184 (section 7.7.4's budgets are per packet, and an
-oversized frame is refused rather than truncated). A station whose decoration
-does not fit sends `nick:` and `file:` in one packet and `m:` in another; the
-rule above already reassembles them, field by field.
+The decoration itself may be split the same way, for the same reason: a
+packet is at most 250 bytes on every transport (section 4), and a long
+description does not fit with the rest. A station whose decoration does not
+fit sends `nick:` and `file:` in one packet and `m:` in another; the rule
+above already reassembles them, field by field.
 
 **`-` clears a field.** `file:-` means "no picture", `nick:-` "no nickname" and
 `m:-` "no description". Without it the rule above could never take a picture
@@ -1606,6 +1605,23 @@ value.
 
 ```
 t:identity f:X1QZ3N ts:2026-08-09_09:00:00 nick:joao file:- sig:<60 characters> m:-
+```
+
+**`url:` says where the station serves its web chat** (the visitor page of
+`API-HTTP.md`), so a person who knows a callsign can open that station's page
+from anywhere it is reachable. It is a decoration field like the others: kept
+per field, newest wins, `url:-` withdraws it. It is the same field section
+11.7.2 puts on a camera's identity. A station states it only when it serves a
+page; one that never did leaves it out, and one that stops (its address changed,
+the page went away) says `url:-`. When the page is reachable over HTTPS the
+station names the `https://` address, and `http://` only when it is not. A
+receiver keeps only an `http://` or `https://` address and offers it as a link;
+anything else is not a web chat and is ignored. When the decoration does not fit
+one packet, `url:` goes with `nick:` and `file:` if they still fit the 250
+bytes, else in a packet of its own.
+
+```
+t:identity f:X3PTZM ts:2026-11-05_17:00:00 nick:XPRS-server file:- url:https://178-202-105-29.nip.io/ sig:<60 characters> m:-
 ```
 
 The split turns out to be the right shape anyway. The key binding is small and
@@ -9775,7 +9791,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `t:report` | not implemented; the chat wapp has moderation ops but no way for an ordinary station to flag anything |
 | `add:repost` | not implemented; the chat wapp has reactions (`add:like`) and no repost |
 | `t:place` | not implemented; nothing in the codebase reports a thing that is not the sender |
-| Avatar and description on `t:identity` | implemented: `nick:`, `file:` and `m:` from the profile, `-` to clear, split at 184 bytes; aired on a change and once a day, deposited with the archivers; receivers keep the newest value per field and fetch the picture with `cmd:file` for the stations they know or are showing. A NOSTR kind-0 note carries the same for NOSTR clients |
+| Avatar and description on `t:identity` | implemented: `nick:`, `file:` and `m:` from the profile, `url:` where the station serves its web chat (the server edition, from its public name), `-` to clear, split at the 250-byte packet; aired on a change and once a day, deposited with the archivers; receivers keep the newest value per field and fetch the picture with `cmd:file` for the stations they know or are showing. A NOSTR kind-0 note carries the same for NOSTR clients |
 | Section 31, airtime | not implemented as stated here, though the Reticulum side has real cadences (30 s charging, 5 min on battery) and the NOSTR side has stranger-serving budgets |
 | `t:status` | not implemented; the Social wapp has a feed, but it is NOSTR kind-1 notes over the internet and Reticulum rather than XPRS packets (`docs/social.md`) |
 | `mood:` and client theming | not implemented; nothing reads a mood and no client changes appearance for one |

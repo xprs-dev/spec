@@ -79,6 +79,11 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
 - `features` are the station's own switches, named as its settings name them.
 - `api` lists the endpoint names from this document that the station
   implements, so a client feature-detects with one request.
+- `station` is the station's own callsign, which the web chat shows beside its
+  title. A station that leaves it out is asked `/api/status` (`callsign`).
+- `page` says what the web chat page may offer here (the webchat repo's
+  README): `tabs`, `session` (a visitor can prove their key, `/api/session`),
+  `admin` (this station has an administrator, `/api/admin`), and `app`.
 
 ### GET /api/xprs/history
 
@@ -199,6 +204,46 @@ operator's network and the operator already owns the radio.
 validation gets HTTP 400 and `{"ok": false, "error": "<reason>"}`; nothing
 is transmitted.
 
+### GET /api/admin, POST /api/admin
+
+The station's administrator and the settings it holds for visitors. The
+administrator is a visitor who proved their key with a session (`/api/session`,
+the webchat repo's README), so the station never holds a password; it keeps the
+callsign and the key it was claimed with, and a session for that callsign
+signed by another key is not the administrator.
+
+`GET /api/admin?session=<token>`:
+
+```json
+{ "ok": true, "admin": "X1ALIC", "you": true, "local": true,
+  "claimable": false,
+  "settings": { "local_private": true, "who_may_post": "everyone" } }
+```
+
+- `admin` is null when the station has none. `you` says whether the session is
+  the administrator's; only then are the `settings` included.
+- `local` says whether the asker is on the station's own network: a private
+  address (RFC 1918, loopback, link-local, IPv6 unique-local), or an address in
+  one of the IPv6 prefixes the station itself holds.
+- `claimable` is true when there is no administrator and the asker is local.
+
+`POST /api/admin` with JSON `{"action": ..., "session": "<token>"}`:
+
+- `claim`: become the administrator. Only while there is none, and only from
+  the station's own network: the moment after a board is flashed or a server
+  installed. From the internet it is refused (403), or the first stranger to
+  find a public station would own it.
+- `set` with `"settings": {...}`: the administrator changes settings. Unknown
+  names or values are refused (400) and nothing changes.
+- `release`: the administrator gives the station up; it is claimable again.
+
+Each answers with the state, as GET does. The settings:
+
+| Setting | Values | Default | What it does |
+|---|---|---|---|
+| `local_private` | true, false | true | visitors who are not local do not get `scope:local` rows from `/api/xprs/history`; asked for `room=local` they get no rows and `"private": true` |
+| `who_may_post` | `everyone`, `local`, `nobody` | `everyone` | who `/api/xprs/send` accepts a wire from |
+
 ### GET /api/log
 
 The station's own log, machine readable, newest first.
@@ -254,3 +299,4 @@ they follow this document. Current extras:
 | GET /api/xprs/mail | no | yes | the application should adopt |
 | POST /api/xprs/send | composes a packet | validates only | the application should also accept a raw `wire` |
 | GET /api/log | yes (plain strings) | yes (typed `t`/`m`) | converge on typed lines |
+| GET/POST /api/admin | yes (share server and server edition, core `WebChatApi`) | no | the firmware should adopt; the page offers it only where `page.admin` says so |
