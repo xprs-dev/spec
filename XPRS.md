@@ -567,7 +567,8 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `relay` | `path` | callsigns the sender asks to relay this packet, in order (section 9.2.2) |
 | `route` | `path` | the route a receipt is acknowledging (section 9.10) |
 | `add` | `enum` | something this packet adds (section 7.5) |
-| `remove` | `enum` | something this packet withdraws (section 7.5) |
+| `remove` | `enum` | something this packet withdraws: a reaction (section 7.5), `message` (sections 7.8.2 and 10.4.1) |
+| `edit` | `hex6` | the publication this one corrects: the identifier of the ORIGINAL (sections 7.8.1 and 10.4.1) |
 | `grant` | `path` | callsigns admitted to a group (section 10) |
 | `revoke` | `path` | callsigns removed or suspended (section 10) |
 | `role` | `enum` | what a grant confers: `mod`, `sub`, or absent for a member |
@@ -2372,6 +2373,60 @@ A non-image obeys the same rules with no preview to soften them, so `size:` and
 157  t:message f:X1QZ3N d:LISBOA ts:2026-08-08_14:26:40 file:Uc3nRw8kFa5xPd1qGz7mYb0tJe6vHs2iLoA9XfCqK4E.pdf size:480kB name:mast-plan.pdf m:the plan for the mast
 ```
 
+### 7.8 Correcting and withdrawing what you said
+
+Nothing on a radio can be unsent. What an author can do is say, in a packet of
+their own, that a publication is corrected or withdrawn, and ask everybody who
+holds it to act on that. Both are ordinary packets of the original's type, from
+the original's author, and both name the original by its identifier (section 5).
+
+### 7.8.1 A correction
+
+`edit:` names the original and `m:` carries the new words:
+
+```
+165  t:message f:X1QZ3N d:X1RD89 ts:2026-08-08_14:31:02 edit:766d3e sig:<60 characters> m:are you still in Athens in October?
+```
+
+- **`edit:` always names the ORIGINAL**, never an earlier correction, so the
+  versions of a message are a list and never a chain that a lost packet breaks.
+- **Only the original's author corrects it**, and only later than it: a
+  receiver ignores an `edit:` whose `f:` is not the original's (unless it is a
+  moderator's act, section 10.4.1) or whose `ts:` is not after the original's.
+- **The newest correction is what is shown**, marked as edited; the earlier
+  versions stay with whoever keeps a history and are offered as one.
+- A correction travels as the original did: to the same `d:`, sealed if the
+  original was (section 6.2), split if long (section 7.6), carried and
+  acknowledged as a packet of its own. Sending the same words again is not a
+  correction.
+
+The same works for every publication an author owns, a status (section 16.3),
+a warning, an event: the type stays the original's, so a receiver that does
+not know `edit:` sees one more publication from the same author and loses
+nothing.
+
+### 7.8.2 A withdrawal
+
+`r:` names the original and `remove:message` says what is being withdrawn,
+the word reactions already use (section 7.5). There is no body:
+
+```
+139  t:message f:X1QZ3N d:X1RD89 ts:2026-08-08_14:35:40 r:766d3e remove:message sig:<60 characters>
+```
+
+- **A withdrawal asks every holder to destroy the text of every version**, the
+  original and every correction, and to keep only the fact that it was
+  withdrawn. A client shows a placeholder; an archiver (section 12) deletes the
+  rows and keeps the identifiers, so a replay of the original does not bring
+  the words back.
+- **It must be verified.** A carrier holding the original releases it only on
+  a withdrawal it could verify against the author's key, or anybody could
+  delete anybody's mail in flight.
+- **It is final.** There is no packet that undoes it, and a correction heard
+  after a withdrawal is ignored.
+- It travels as the original did, to the same `d:`, and carries nothing
+  readable beyond who and which.
+
 ---
 
 ## 8. Asking and answering
@@ -3639,6 +3694,33 @@ chosen by the narrowest window containing the moment, and membership is not.
 Narrowest-window-wins would demote a moderator the instant any narrower grant
 existed.
 
+### 10.4.1 A moderator's correction and removal
+
+A moderator, or the admin, may correct or remove somebody else's publication in
+the group. The words are those of section 7.8, under `t:moderate`, so the act
+can never be taken for the author's own:
+
+```
+163  t:moderate f:X32DVA d:X5A3F2 ts:2026-08-08_15:02:11 edit:89a9c8 sig:<60 characters> m:[address removed by a moderator]
+140  t:moderate f:X32DVA d:X5A3F2 ts:2026-08-08_15:02:40 r:89a9c8 remove:message sig:<60 characters>
+```
+
+**An act binds the author only when its signer outranks them.** The admin
+outranks a moderator, who outranks a member; the comparison is made with both
+roles as they stood at the act's `ts:` (section 10.4). From then on the author
+cannot overrule it with a correction of their own; only an equal or higher
+authority can.
+
+**A removal destroys the text**, exactly as an author's withdrawal does
+(section 7.8.2), for every holder that honours the group's record, the
+archivers included. **`hide:message` is the gentler act**: it asks clients not
+to display the packet and destroys nothing. A moderator chooses between them;
+a removal cannot be taken back.
+
+A member who is not a moderator is not shown what a moderator's correction
+replaced, only that earlier versions were removed by a moderator; a moderator
+and the admin may see them.
+
 ### 10.5 Expiry, and what a quiet group does
 
 `until:` on a grant is optional, exactly as it is on a mailbox declaration
@@ -3798,6 +3880,125 @@ bounded differently at every archiver, is the condition clients are already
 required to tolerate. An archiver that evicts says nothing about it: there is
 no packet announcing what was dropped, because a station that could hear such
 an announcement could equally have asked.
+
+---
+
+### 10.10 A station's own rooms
+
+A station that offers its rooms to visitors, the web chat of `API-HTTP.md` on a
+server, a phone's hotspot or a board, needs the same two things a group has:
+somebody in charge, and people who may take a message down or send somebody
+away. It uses section 10 as it stands, with one difference: **its rooms are
+open**, so nobody needs a grant to post and there is no member list.
+
+**The station is the group.** Its own callsign is the `d:` of every act about
+its rooms, and its own key signs as the admin, because the station is what
+holds that key. The person in charge, the station's administrator, is somebody
+who proved their key to the station (`API-HTTP.md`, `/api/admin`); the station
+signs the admin's acts on their instruction, so a person never holds the
+station's key to administer it.
+
+**Moderators are appointed and accept, as in section 10.3.1:**
+
+```
+138  t:moderate f:X3PTZM d:X3PTZM ts:2026-11-06_10:00:00 grant:X1RD89 role:mod sig:<60 characters>
+136  t:moderate f:X1RD89 d:X3PTZM ts:2026-11-06_10:03:12 r:5c0e1a accept:mod sig:<60 characters>
+```
+
+**A moderator removes a message, or sends somebody away, signing as
+themselves:**
+
+```
+140  t:moderate f:X1RD89 d:X3PTZM ts:2026-11-06_11:20:00 r:a41f07 remove:message sig:<60 characters>
+156  t:moderate f:X1RD89 d:X3PTZM ts:2026-11-06_11:20:30 revoke:X1PZ4Q until:2026-11-07_11:20:30 sig:<60 characters>
+```
+
+`revoke:` without `until:` sends the person away until the admin says
+otherwise; with it, until that moment. In an open room **a grant without
+`role:` makes somebody an ordinary visitor again**: it lifts a revocation, and
+it ends a moderator's role, and it admits nobody to anything, so it needs no
+acceptance (section 10.3.1 protects a person from being put in a roster, and
+there is none here). Only the admin grants, so only the admin lifts or
+dismisses:
+
+```
+129  t:moderate f:X3PTZM d:X3PTZM ts:2026-11-06_12:00:00 grant:X1PZ4Q sig:<60 characters>
+```
+
+What these acts do, and where:
+
+- **The station enforces them on what it serves.** It refuses a post through
+  its own interfaces from somebody it has sent away, does not show its visitors
+  what they publish, and deletes a removed message from its archive and stops
+  serving it. Section 10.7 still holds: `t:sos`, `t:warning` and `t:info` are
+  shown whatever the record says.
+- **Nothing else is bound.** The acts are public, signed and replayable like
+  every other `t:moderate`, so a client showing this station's rooms can honour
+  them, but other stations' rooms are theirs to run.
+- **Section 10.4 decides the record**: authority judged at the act's moment,
+  newest wins per signer, and `revoke:` with `since:` voids a moderator's acts.
+
+### 10.10.1 Rooms a station hosts
+
+Besides its open rooms, a station may host closed groups of its own: rooms its
+administrator creates for a club, a building, a team. Each is an ordinary
+closed group, an `X5` keypair announced by its `t:identity` (section 10.1),
+with one difference: **the station holds the group's key and keeps its
+traffic.** It is the group's admin, so it signs the group's acts on its
+administrator's instruction exactly as it signs its own rooms' (section 10.10),
+and nothing the group says leaves the station:
+
+- **Hosted, not aired.** Members post through the station (`API-HTTP.md`,
+  `/api/xprs/send`, `d:` the group's callsign); the station files the packet
+  and serves it, and does not put it, the group's acts or its `t:identity` on
+  any bearer, deposit it with an archiver (section 10.9.2) or list the group in
+  its directory (section 10.9.1). A packet for the group heard from elsewhere
+  is somebody else's traffic and is not served as the room's.
+- **Every packet is still signed and still section 10.** Membership is a grant
+  the member accepts (section 10.3.1), moderators are `role:mod` and remove
+  with `r:<id> remove:message` or `revoke:` (section 10.4.1), and the record
+  is replayed under section 10.4. Nothing about the wire is new.
+
+The station keeps three things about each room that are not on the wire,
+because they decide what it serves rather than what anybody signs:
+
+| Option | Values | What the station does |
+|---|---|---|
+| name, description | words | the group's `nick:` and `m:` (section 6.3.2), shown in the room list |
+| visibility | `public`, `private` | public: listed to every visitor and readable by all; private: listed and served only to members who proved their key, so others cannot tell it exists |
+| posting | `members`, `anyone` | members: only those whose grant is accepted (section 10.3.1) may post; anyone: every visitor may, except somebody revoked. A private room is always `members` |
+
+**Private means served to members, not secret.** The words are cleartext in the
+station's archive and the station's operator can read them; private says only
+whom the station hands them to, which is the most a host can promise about a
+room it does not seal (section 10.7). Closing a room stops the station serving
+it and forgets its options; the signed record and the key stay with the
+station, so reopening it is the same group.
+
+### 10.10.2 Alerts a station shows
+
+A station that serves visitors shows them the warnings and notices it holds
+(`t:warning`, section 24; `t:info`, section 25), heard from any bearer, in a
+place of their own, because an alert read an hour late is worth less than one
+read now. An alert is active from its `ts:` until its `until:`, or for a day
+when it has none, and until it is withdrawn (section 25.2).
+
+Posting one **through** the station is a different question from showing one.
+A warning is relayed nine times (section 24), so a station that let every
+passer-by post them through its page would lend its standing, and the
+channel's, to anybody. By default only the station's moderators and its
+administrator (section 10.10) may post an alert through it; the administrator
+may open it to every visitor. Either way the alert is the poster's own signed
+packet, and the author may withdraw it:
+
+```
+177  t:warning f:X1RD89 kind:outage sev:watch ts:2026-11-06_18:00:00 until:2026-11-06_22:00:00 sig:<60 characters> m:power cut in block C
+130  t:warning f:X1RD89 ts:2026-11-06_19:10:00 r:3c7e21 remove:warning sig:<60 characters>
+```
+
+`pos:` and `rad:` are as section 24 has them and may be left out when the alert
+is about the station's own surroundings. A `t:sos` is never refused by this
+rule (section 10.7).
 
 ---
 
@@ -9002,7 +9203,8 @@ packet **250 bytes**, on every transport.
 | `relay` | `path` | callsigns the sender asks to relay this packet, in order (section 9.2.2) |
 | `route` | `path` | the route a receipt is acknowledging (section 9.10) |
 | `add` | `enum` | something this packet adds (section 7.5) |
-| `remove` | `enum` | something this packet withdraws (section 7.5) |
+| `remove` | `enum` | something this packet withdraws: a reaction (section 7.5), `message` (sections 7.8.2 and 10.4.1) |
+| `edit` | `hex6` | the publication this one corrects: the identifier of the ORIGINAL (sections 7.8.1 and 10.4.1) |
 | `grant` | `path` | callsigns admitted to a group (section 10) |
 | `revoke` | `path` | callsigns removed or suspended (section 10) |
 | `role` | `enum` | what a grant confers: `mod`, `sub`, or absent for a member |
@@ -9795,10 +9997,12 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 31, airtime | not implemented as stated here, though the Reticulum side has real cadences (30 s charging, 5 min on battery) and the NOSTR side has stranger-serving budgets |
 | `t:status` | not implemented; the Social wapp has a feed, but it is NOSTR kind-1 notes over the internet and Reticulum rather than XPRS packets (`docs/social.md`) |
 | `mood:` and client theming | not implemented; nothing reads a mood and no client changes appearance for one |
-| `X5` group callsigns and `t:moderate` | not implemented; groups are plain names with no member list anywhere |
+| `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, and the moderator's `edit:` / `remove:message` of section 10.4.1, judged at the act's moment; the chat wapp's closed groups use it |
+| Correcting and withdrawing, sections 7.8 and 10.4.1 | **implemented**: `edit:` and `r:<id> remove:message` for 1:1, closed groups, rooms, Status and Alerts; archivers purge a verified withdrawal and keep a tombstone; the courier releases a carried copy only on a verified one |
+| A station's own rooms, section 10.10 | **implemented** in the core's `WebChatApi` and the web chat: an administrator who proved their key, moderators appointed with `role:mod` and accepting, `remove:message` and `revoke:` [`until:`] signed in the browser, lifting by the station's grant; the boards do not have it yet |
 | Subgroups, `role:sub` nested five levels deep | not implemented; the chat wapp has a sub-room tree, but on NOSTR rooms and with authority inherited down the tree rather than stopping at each key |
 | Never filtering `sos`, `warning` and `info` by membership | not implemented; there is no membership filter to exempt them from |
-| The chat wapp's own moderation | **implemented, and by a different design**: NIP-72 rooms with a NOSTR kind-9078 op-log, authority from the room event's author rather than a group keypair, and no roster at all (`docs/chat-rooms.md`). Nothing in section 10 is built, and reconciling the two is not attempted here |
+| The chat wapp's NOSTR rooms | **a second design, kept for NOSTR**: NIP-72 rooms with a kind-9078 op-log and authority from the room event's author (`docs/chat-rooms.md`). The wapp's XPRS closed groups use section 10 itself; the NOSTR rooms are not reconciled with it |
 | `cmd:interpret` | not implemented; no station interprets natural language |
 | `near:`, regional delivery, `route:` in a receipt | not implemented |
 | `q:sign` and signed receipts | not implemented |

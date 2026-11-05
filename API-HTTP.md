@@ -83,7 +83,11 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   title. A station that leaves it out is asked `/api/status` (`callsign`).
 - `page` says what the web chat page may offer here (the webchat repo's
   README): `tabs`, `session` (a visitor can prove their key, `/api/session`),
-  `admin` (this station has an administrator, `/api/admin`), and `app`.
+  `admin` (this station has an administrator, `/api/admin`), `moderation`
+  (its rooms have moderators, XPRS.md section 10.10), `rooms` (it hosts
+  closed groups of its own, `/api/rooms`, section 10.10.1), `alerts` (who may
+  post a `t:warning` or `t:info` through it: `moderators` or `everyone`,
+  section 10.10.2; the page lists the ones it holds as a feed), and `app`.
 
 ### GET /api/xprs/history
 
@@ -236,6 +240,34 @@ signed by another key is not the administrator.
 - `set` with `"settings": {...}`: the administrator changes settings. Unknown
   names or values are refused (400) and nothing changes.
 - `release`: the administrator gives the station up; it is claimable again.
+- `appoint`, `dismiss`, `lift` with `"call": "<callsign>"`: on a station whose
+  rooms are moderated (XPRS.md section 10.10), the station signs, as itself,
+  `grant:<call> role:mod` (appoint) or `grant:<call>` (dismiss a moderator, or
+  lift a removal), files it and airs it. Only the administrator may ask.
+
+Claiming also has the station offer the new administrator `role:mod`, which
+their page accepts with their own signature, so the administrator moderates
+like anybody appointed.
+
+On such a station the state also carries the asker's place in the record:
+`station` (the callsign that is `d:` of every act), `role` (`admin`, `mod`,
+`invited` or `none`) and, when invited, `offer` (the identifier of the grant
+to accept). A moderator or the administrator also gets `moderators`,
+`invited`, and `away` (`[{"call": ..., "until": ...}]`, no `until` meaning
+until lifted).
+
+Moderators do not go through `/api/admin`: they sign `t:moderate` acts about
+the station's rooms in the browser and post them to `/api/xprs/send` like any
+wire. The station takes one only when `d:` is its own callsign, the signature
+verifies against a key it holds, and the signer is a moderator now (or is
+accepting an offer made to them, `r:<grant> accept:mod`); a grant from anybody
+but the station is refused. It then enforces the record on what it serves: a
+removed message (`r:<id> remove:message`) and the publications of somebody sent
+away (`revoke:<call>`, with or without `until:`) are left out of
+`/api/xprs/history`, except `sos`, `warning` and `info`; a post from somebody
+sent away is refused (403); and the history answer carries
+`"moderation": {"removed": [ids], "away": [callsigns]}` so a page already
+showing them takes them down.
 
 Each answers with the state, as GET does. The settings:
 
@@ -243,6 +275,48 @@ Each answers with the state, as GET does. The settings:
 |---|---|---|---|
 | `local_private` | true, false | true | visitors who are not local do not get `scope:local` rows from `/api/xprs/history`; asked for `room=local` they get no rows and `"private": true` |
 | `who_may_post` | `everyone`, `local`, `nobody` | `everyone` | who `/api/xprs/send` accepts a wire from |
+| `who_may_alert` | `moderators`, `everyone` | `moderators` | who may post a `t:warning` or `t:info` through `/api/xprs/send` (XPRS.md 10.10.2); the administrator and the moderators always may, and an author always withdraws their own |
+
+### GET /api/rooms, POST /api/rooms
+
+The closed groups this station hosts (XPRS.md section 10.10.1): ordinary `X5`
+groups whose key the station holds and whose traffic it files and serves but
+never airs. `GET /api/rooms?session=<token>` lists the rooms the asker may see:
+every public room, and the private rooms the asker is in (or all of them, to
+the administrator).
+
+```json
+{ "ok": true, "rooms": [ { "call": "X5A3F2", "name": "Block C", "about": "residents",
+  "visibility": "public", "posting": "members", "role": "member", "can_post": true } ] }
+```
+
+`role` is the asker's place in the room (`admin`, `mod`, `member`, `invited`
+with the `offer` to accept, or `none`); `can_post` says whether a message from
+the asker would be taken. A moderator or the administrator also gets `members`,
+`moderators` and `invited`.
+
+`POST /api/rooms` is the administrator's (JSON, `session` required):
+
+- `create` with `name`, optional `about`, `visibility` (`public` or `private`,
+  default public) and `posting` (`members` or `anyone`; a private room is
+  always `members`). The station makes the group's key and offers the
+  administrator `role:mod`, which their page accepts. The answer names the new
+  room in `room`.
+- `update` with `call` and any of `name`, `about`, `visibility`, `posting`.
+- `close` with `call`: the station stops serving the room and forgets its
+  options; the key and the signed record stay.
+- `add`, `appoint`, `remove` with `call` and `member`: the station signs, as
+  the room, `grant:<member>`, `grant:<member> role:mod` or `revoke:<member>`.
+  A grant is an offer the person accepts by posting
+  `t:moderate f:<them> d:<room> r:<offer> accept:member` (or `accept:mod`)
+  through `/api/xprs/send` (XPRS.md 10.3.1).
+
+Reading a room is `GET /api/xprs/history?room=<call>&session=<token>` (a
+private room answers 404 to anybody not in it); posting is a signed
+`t:message` (or `t:reaction`) with `d:<call>` through `/api/xprs/send`, taken
+from a member (or anybody, where `posting` is `anyone`) whose key the station
+has heard, filed and not aired. A room's moderators act as in section 10.10:
+`r:<id> remove:message`, `revoke:<call> [until:]`, signed by them.
 
 ### GET /api/log
 
@@ -300,3 +374,4 @@ they follow this document. Current extras:
 | POST /api/xprs/send | composes a packet | validates only | the application should also accept a raw `wire` |
 | GET /api/log | yes (plain strings) | yes (typed `t`/`m`) | converge on typed lines |
 | GET/POST /api/admin | yes (share server and server edition, core `WebChatApi`) | no | the firmware should adopt; the page offers it only where `page.admin` says so |
+| GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | no | the page offers it only where `page.rooms` says so |
