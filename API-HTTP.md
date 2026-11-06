@@ -344,7 +344,9 @@ has heard, filed and not aired. A room's moderators act as in section 10.10:
 `title:` it opens a topic (or replaces the author's earlier one of that
 title, XPRS.md 18.1); without a title and with `r:` (and `root:` below the
 first level) it is a comment on a topic (18.5); a long one arrives in parts,
-signed on the last (9.1.1). `t:message` to the room stays its conversation.
+signed on the last (9.1.1): each part but the last is answered `202` with
+`held`, and the last `200` with the whole's `id`, which is what the station
+files and serves. `t:message` to the room stays its conversation.
 `GET /api/rooms?topics=<call>&session=<token>` is the room's index, the
 newest 100 topics by last activity:
 
