@@ -327,8 +327,11 @@ the asker would be taken. A moderator or the administrator also gets `members`,
   as the owner's record says, with no authority of its own in it. `unmirror`
   with `call` stops that and forgets the copy's options; what was filed stays
   filed. `sync` with `call` asks the room's peers now rather than at the next
-  period. A shared room lists `peers` and `seen` (stations that asked for it
-  and were answered); a mirrored one carries `mirrored: true` and `owner`.
+  period. A peer's `cmd:history only:<call>` that finds nothing in its window
+  is answered `404 m:try` naming the room's other holders, so a third station
+  finds one (XPRS.md 12.9). A shared room lists `peers` and `seen` (stations
+  that asked for it and were answered); a mirrored one carries
+  `mirrored: true` and `owner`.
 - `close` with `call`: the station stops serving the room and forgets its
   options; the key and the signed record stay.
 - `add`, `appoint`, `remove` with `call` and `member`: the station signs, as
