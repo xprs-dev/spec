@@ -548,6 +548,8 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `lang` | `lang` | language of `m:`, default English (section 4.7) |
 | `hold` | `path` | preferred mailboxes, in order (section 9.12) |
 | `serve` | `words` | what a station does for others (section 13) |
+| `dial` | `text` | where the station answers a TCP connection under the one-port rule, `host` or `host:port` (section 13.0.2) |
+| `room` | `enum` | on `serve:archive`, whether the archiver takes new stations: `yes` (the default) or `no` (section 13.0.2) |
 | `cmd` | `label` | the action a command asks for (section 11) |
 | `owner` | `path` | who may command a station: its allow-list (section 11.9) |
 | `use` | `enum` | who may originate traffic through a station (section 11.9) |
@@ -5801,6 +5803,35 @@ store-and-forward, which does not care how long the light takes. Humble stations
 ask such an archiver what their own gossip does not know, the way section 9.12.1
 already falls back to `serve:archive`.
 
+### 12.9.5 Who is cared for by whom
+
+An archiver's load is the set of stations whose `t:mailbox` names it, and that
+set is already gossip: L1 of 12.9.4 is fed by exactly those declarations.
+Archivers exchange them as they exchange sightings, with 12.9.3's standing
+catch-up carrying `kind:mailbox`:
+
+```
+t:command f:X3ARC1 d:X3ARC2 ts:2026-11-06_10:00:00 cmd:history kind:mailbox since:2026-11-05_10:00:00 sig:<60 characters>
+```
+
+166 bytes. The peer replays the ORIGINAL declarations, each verifying on the
+declaring station's signature, so an archiver learns who is cared for by whom
+without taking anybody's word for it except the station concerned. What the
+exchange gives each archiver:
+
+- **its own load**: the number of current declarations naming it, which is what
+  sets its `room:` (13.0.2);
+- **its neighbours' load**, so a station that asks it where to go (9.12.1's
+  fallback to `serve:archive`) can be pointed at one with room;
+- **the routing of 12.8.1**, which already consults declarations in `hold:`
+  order, now across the federation rather than only from the declarations this
+  archiver happened to overhear.
+
+Nothing here moves mail between archivers: the rule that opened section 12.9
+stands. A declaration is a fact about a station's preference; where the mail
+is held follows from it, one deposit per holder named, made by the sender
+(12.7).
+
 ### 12.10 Two archivers meet
 
 A station that was away has a hole in its archive as wide as its absence, and the
@@ -5871,6 +5902,11 @@ caller six times an hour. A faster device steals its own budget; a slower one
 merely learns the news later. Section 12.10.2 is what a station does with this
 once it can see which of its archivers are busy and which have been silent since
 spring.
+
+A pocket device that holds a `dial:` for an archiver (13.0.2) runs the same
+cycle over that socket, where the ask costs no shared-transport metering and
+where an open socket makes the archiver deliver without being asked; the
+period above is then its backstop, armed for the connection that dropped.
 
 ### 12.10.2 The poll adapts to what it finds
 
@@ -6364,6 +6400,60 @@ t:service f:X3RLY7 pos:38.7810,-9.2043 serve:relay,archive,internet,aprs source:
 
 173 bytes. `source:solar` from section 14.3 means it survives a power cut,
 which is when a gateway matters most.
+
+### 13.0.2 `dial:` and `room:`: an archiver that can be dialled, and whether it has room
+
+```
+t:service f:X3ARC1 serve:archive,files count:48211 dial:arc1.example.org room:yes ts:2026-11-06_10:00:00 sig:<60 characters>
+```
+
+169 bytes. **`dial:` is where this station answers a TCP connection** under
+the one-port rule of section 13.4: a host name or an address, with `:port`
+appended only when the port is not 4242. It sits inside the signature like
+everything else on the announcement, so it is the station's own claim and
+nobody else's. A station that cannot be reached that way, behind a NAT it does
+not control or on a phone, omits it, and a receiver that finds the address
+dead treats the announcement as if it carried none.
+
+What it buys is the pocket device's whole internet life. Section 12.10.1's
+poll, 12.3's push, 9.12's declaration, 12.7's deposit, 9.12.3's `q:mail`,
+11.2's `cmd:file` and `cmd:put`: every one of them is a directed packet, and a
+directed packet needs no shared transport when the two ends share a socket. A
+device holding a `dial:` for its archiver talks to it as text on that socket
+(13.4), is not a node of the shared transport while it does so, announces
+nothing, carries nothing for anybody, and costs its battery one idle
+connection. The announcement travels on the shared transport; the conversation
+does not.
+
+Where it is learned: a pocket device hears `t:service` only while it is
+attached to a transport, on a charger, or during the session it opens to serve
+a request (12.12.1), and it KEEPS what it heard: the callsign, the `dial:`,
+the qualities of 12.9.4. A fresh install attaches once to learn its archivers
+and from then on dials. A later announcement from the same callsign replaces
+the address, one without `dial:` withdraws it, and the record expires with the
+announcement's `until:` or, absent one, when the device has not heard the
+callsign for as long as it keeps an L3 sighting (12.9.4).
+
+**Over an open connection the archiver DELIVERS.** Mail it holds for the
+connected callsign, and mail that arrives while the connection stands, each as
+the ordinary directed packet it is, with nothing asked. The poll of 12.10.1 is
+then the backstop for a connection that dropped, not the mechanism: a device
+that keeps the socket open learns of a message when the archiver does. A
+device that cannot keep one, past a transport's idle timeout or with a radio
+it must switch off, polls on 12.10.2's ladder as before, `q:mail only:` first
+because it is the cheapest ask (9.12.3).
+
+**`room:` says whether the archiver takes new stations.** `room:yes` or
+`room:no`; absent means yes, which is what every archiver meant before the key
+existed. A station choosing archivers (12.3) does not name one that says
+`room:no` in a NEW `t:mailbox`, and an archiver that says it still honours
+every declaration that already names it until that declaration's `until:`
+passes: the word governs who may arrive, never who is already there. This is
+how archivers share the load without a controller: each knows how many
+declarations name it (12.9.5), each sets its own ceiling by its own disk and
+bandwidth, and newcomers go where there is room. An archiver may still decline
+a particular deposit (22.2) while saying `room:yes`; like every advertised
+service (13.3), `room:` is a forecast, not a promise.
 
 ### 13.1 What this is not
 
@@ -9185,6 +9275,8 @@ packet **250 bytes**, on every transport.
 | `lang` | `lang` | language of `m:`, default English (section 4.7) |
 | `hold` | `path` | preferred mailboxes, in order (section 9.12) |
 | `serve` | `words` | what a station does for others (section 13) |
+| `dial` | `text` | where the station answers a TCP connection under the one-port rule, `host` or `host:port` (section 13.0.2) |
+| `room` | `enum` | on `serve:archive`, whether the archiver takes new stations: `yes` (the default) or `no` (section 13.0.2) |
 | `cmd` | `label` | the action a command asks for (section 11) |
 | `owner` | `path` | who may command a station: its allow-list (section 11.9) |
 | `use` | `enum` | who may originate traffic through a station (section 11.9) |
@@ -9876,7 +9968,7 @@ All other lowercase words are reserved.
 
 Assigned keys: `t`, `f`, `d`, `ts`, `tz`, `q`, `s`, `r`, `n`, `via`, `track`,
 `seq`, `title`, `dest`, `onboard`, `price`, `cw`, `freq`, `bw`, `shift`, `urg`,
-`scope`, `lang`, `nick`, `hold`, `serve`, `cmd`, `arg`, `code`, `ver`, `url`,
+`scope`, `lang`, `nick`, `hold`, `serve`, `dial`, `room`, `cmd`, `arg`, `code`, `ver`, `url`,
 `owner`, `use`, `first`, `ssid`, `pass`, `wifi`, `ip`, `zone`, `ap`, `key`,
 `nsec`, `near`, `route`, `relay`, `tone`, `input`, `power`, `mode`, `ch`,
 `range`, `site`, `source`, `every`, `for`, `at`, `kind`, `sev`, `rad`, `tag`,
@@ -9920,6 +10012,9 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 11.2.1 a continuation must make progress | specified in this revision after both halves failed on the bench; the asker's half (a stalled resume is not news) is **implemented** on the Flutter side, the responder's `until:` half is not yet |
 | Section 12.9.4 what an always-on archiver must be | **implemented as a setting, not a role**: the Flutter app's Always on is a further promise a station opts into, and it can only be made by a station that is already a public archiver. Nothing about it goes on the wire — a peer decides which archivers are worth leaning on from `serve:archive` plus `count:`, `uptime:` and whether the station is addressable off-radio (`xprsLooksAlwaysOn`). The app used to air `serve:archive,super`, a word this vocabulary never had, and now neither airs nor parses it |
 | Section 12.12.2 public traffic across the internet (push to chosen archivers, pull from them, publications past the declaration rule, callsign-to-address resolution) | **implemented and bench-validated**: two phones on different networks, neither hearing the other's broadcasts, exchanged Global chat through one always-on archiver, push arrived in seconds, pull on the metering period |
+| Section 13.0.2 `dial:` and `room:` (an archiver that can be dialled, delivery over an open socket, room for newcomers) | **specified, not implemented**: neither the app nor the firmware announces them, and the app has no line-protocol CLIENT (13.4 is implemented on the listener side only). This is the pocket device's internet lane for the Android battery work begun 2026-11-06 |
+| Section 12.9.5 who is cared for by whom (`kind:mailbox` between archivers, load read off declarations) | **specified, not implemented** |
+| Section 9.12.3 `q:mail` | **implemented** on the ESP32 station (`common/xprs_app`); the Flutter archiver does not answer it yet |
 | Callsigns, signatures, verification | implemented |
 | Signing by default on every packet type | not implemented; signing exists and is opt-in |
 | Direct, group and broadcast messages | implemented |

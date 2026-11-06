@@ -351,7 +351,7 @@ they follow this document. Current extras:
 - ESP32 config share: `GET /` (editor page), `GET/POST /config.ini`,
   `GET /log.txt` (the raw rotating log, newest first).
 - The XPRS application: `POST /api/xprs/ask` (compose and air a signed `cmd:history` at
-  another station), `POST /api/xprs/mailbox` (declare favourite indexers),
+  another station), `POST /api/xprs/mailbox` (declare favourite archivers),
   and its application-specific surface.
 - A camera or doorbell (the `url:` target of XPRS.md section 11.7.2):
   `GET /door/snapshot.jpg` returns a current still as `image/jpeg`, and
