@@ -87,9 +87,9 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   (its rooms have moderators, XPRS.md section 10.10), `rooms` (it hosts
   closed groups of its own, `/api/rooms`, section 10.10.1), `alerts` (who may
   post a `t:warning` or `t:info` through it: `moderators` or `everyone`,
-  section 10.10.2; the page lists the ones it holds as a feed), `banner`
-  (HTML the page shows under its header, the administrator's `banner`
-  setting on `/api/admin`), and `app`.
+  section 10.10.2; the page lists the ones it holds as a feed), every
+  `page_<name>` setting the administrator set on `/api/admin` as `<name>`
+  (the page's banner, stylesheet and logo), and `app`.
 
 ### GET /api/xprs/history
 
@@ -289,7 +289,7 @@ Each answers with the state, as GET does. The settings:
 | `local_private` | true, false | true | visitors who are not local do not get `scope:local` rows from `/api/xprs/history`; asked for `room=local` they get no rows and `"private": true` |
 | `who_may_post` | `everyone`, `local`, `nobody` | `everyone` | who `/api/xprs/send` accepts a wire from |
 | `who_may_alert` | `moderators`, `everyone` | `moderators` | who may post a `t:warning` or `t:info` through `/api/xprs/send` (XPRS.md 10.10.2); the administrator and the moderators always may, and an author always withdraws their own |
-| `banner` | HTML, at most 4000 characters | empty | shown under the page's header to every visitor (`page.banner` on `/api/services`); empty, the page shows its own text |
+| `page_<name>` | text, at most 8000 characters | unset | what the web chat page defines for itself and its administrator writes: the station stores the string as given and reports it as `page.<name>` on `/api/services`; set to empty it is gone. The page uses `page_banner` (HTML under the header), `page_css` (a stylesheet of its own) and `page_logo` (HTML in place of the logo); a station need know none of these |
 
 ### GET /api/rooms, POST /api/rooms
 
