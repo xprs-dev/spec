@@ -373,5 +373,15 @@ they follow this document. Current extras:
 | GET /api/xprs/mail | no | yes | the application should adopt |
 | POST /api/xprs/send | composes a packet | validates only | the application should also accept a raw `wire` |
 | GET /api/log | yes (plain strings) | yes (typed `t`/`m`) | converge on typed lines |
-| GET/POST /api/admin | yes (share server and server edition, core `WebChatApi`) | no | the firmware should adopt; the page offers it only where `page.admin` says so |
-| GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | no | the page offers it only where `page.rooms` says so |
+| GET /api/session, POST /api/session | yes (core `WebChatApi`) | yes (`common/xprs_webchat`) | a signed nonce; the page proves its key to read its mail and to administer or moderate |
+| GET/POST /api/admin | yes (share server and server edition, core `WebChatApi`) | yes (`common/xprs_webchat`, `xapi_wc.c`) | the page offers it where `page.admin` says so |
+| GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | yes (`common/xprs_webchat`) | the page offers it where `page.rooms` says so |
+
+**One page, several engines.** The web chat page is the same file on every
+platform; a phone, a server or a board is an engine behind this API. Two
+implementations exist because the platforms do, the Dart core's `WebChatApi`
+and the ESP32's `xwc` (plain C), and what keeps them one API is the
+conformance suite in the webchat repo, `contract/conformance.py`: it drives
+every endpoint above from outside with keys of its own, signing with the
+page's crypto, and is run against each engine. A rule added to one engine is
+added to the suite first, and the other engine fails until it has it.
