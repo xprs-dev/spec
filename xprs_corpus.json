@@ -1400,6 +1400,21 @@
 "id": "01cd38"
 },
 {
+"wire": "t:blog f:X1RD89 ts:2026-08-08_16:02:10 r:5f2c1a sig:KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK m:Three centimetres is a lot. Which balun?",
+"bytes": 155,
+"id": "053ff7"
+},
+{
+"wire": "t:blog f:X1QZ3N ts:2026-08-08_16:40:00 root:5f2c1a r:9b7e44 sig:KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK m:A 1:1 current balun. It was the wire, not the balun.",
+"bytes": 179,
+"id": "5328f5"
+},
+{
+"wire": "t:blog f:X1RD89 d:X5F0RM ts:2026-08-08_16:02:10 title:balun-question tag:radio sig:KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK m:Which balun did the dipole get, and did it matter?",
+"bytes": 196,
+"id": "a1dca4"
+},
+{
 "wire": "t:passage f:X1BOA3 pos:38.6902,-9.4012 dest:38.5241,-8.8931 since:2026-08-09_06:00:00 until:2026-08-09_18:00:00 onboard:3 type:sailboat ts:2026-08-08_14:26:40",
 "bytes": 158,
 "id": "9fa868"

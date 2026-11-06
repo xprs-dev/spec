@@ -104,7 +104,10 @@ Query parameters, all optional:
   undirected records heard in range, by the scope their author wrote before
   `m:` (no scope, `scope:global` or a country is `global`). A page asks a room
   at a time so one busy room cannot fill the window; an unknown room matches
-  nothing.
+  nothing. A hosted room's callsign (below) reads that room.
+- `root` -- a thread (XPRS.md 7.4, 18.5): the packet with this identifier
+  and every row carrying `root:<id>` or `r:<id>`, oldest first within the
+  window. With `room=`, inside that room.
 - `limit` -- rows to return; default 30, cap 200.
 
 ```json
@@ -287,8 +290,15 @@ the administrator).
 
 ```json
 { "ok": true, "rooms": [ { "call": "X5A3F2", "name": "Block C", "about": "residents",
-  "visibility": "public", "posting": "members", "role": "member", "can_post": true } ] }
+  "kind": "chat", "visibility": "public", "posting": "members",
+  "shared": false, "role": "member", "can_post": true } ] }
 ```
+
+`kind` is `chat` (the default: a conversation) or `forum` (topics and
+comments, XPRS.md 18.5, with the conversation beside them). `shared` says
+whether other stations may hold a copy (below); a room this station mirrors
+from another carries `owner` (that station's callsign) instead, and
+`mirrored: true`.
 
 `role` is the asker's place in the room (`admin`, `mod`, `member`, `invited`
 with the `offer` to accept, or `none`); `can_post` says whether a message from
@@ -297,12 +307,24 @@ the asker would be taken. A moderator or the administrator also gets `members`,
 
 `POST /api/rooms` is the administrator's (JSON, `session` required):
 
-- `create` with `name`, optional `about`, `visibility` (`public` or `private`,
-  default public) and `posting` (`members` or `anyone`; a private room is
-  always `members`). The station makes the group's key and offers the
-  administrator `role:mod`, which their page accepts. The answer names the new
-  room in `room`.
-- `update` with `call` and any of `name`, `about`, `visibility`, `posting`.
+- `create` with `name`, optional `about`, `kind` (`chat` or `forum`, default
+  chat), `visibility` (`public` or `private`, default public) and `posting`
+  (`members` or `anyone`; a private room is always `members`). The station
+  makes the group's key and offers the administrator `role:mod`, which their
+  page accepts. The answer names the new room in `room`.
+- `update` with `call` and any of `name`, `about`, `kind`, `visibility`,
+  `posting`.
+- `share` with `call`, `shared` (true or false) and `peers` (callsigns of the
+  stations that may hold a copy; required for a private room, optional for a
+  public one, where an empty list means any station). The station then
+  answers `cmd:history only:<call>` to those stations and asks them the same
+  (XPRS.md 10.10.1). Sharing a private room is served-to-members at two
+  operators, and the page says so before it asks.
+- `mirror` with `call` (the room's `X5`) and `owner` (the station that holds
+  its key): this station fetches the group's identity from the owner, then
+  its record and its posts, and serves the room as the owner's record says,
+  with no authority of its own in it. `unmirror` with `call` stops that and
+  forgets the copy's options; what was filed stays filed.
 - `close` with `call`: the station stops serving the room and forgets its
   options; the key and the signed record stay.
 - `add`, `appoint`, `remove` with `call` and `member`: the station signs, as
@@ -317,6 +339,26 @@ private room answers 404 to anybody not in it); posting is a signed
 from a member (or anybody, where `posting` is `anyone`) whose key the station
 has heard, filed and not aired. A room's moderators act as in section 10.10:
 `r:<id> remove:message`, `revoke:<call> [until:]`, signed by them.
+
+**A forum room** takes `t:blog` as well, under the same posting rule: with
+`title:` it opens a topic (or replaces the author's earlier one of that
+title, XPRS.md 18.1); without a title and with `r:` (and `root:` below the
+first level) it is a comment on a topic (18.5); a long one arrives in parts,
+signed on the last (9.1.1). `t:message` to the room stays its conversation.
+`GET /api/rooms?topics=<call>&session=<token>` is the room's index, the
+newest 100 topics by last activity:
+
+```json
+{ "ok": true, "room": "X5F0RM", "topics": [
+  { "id": "5f2c1a", "title": "balun-question", "from": "X1RD89",
+    "ts": 1754668930, "replies": 2, "last": 1754671200, "edited": false } ] }
+```
+
+A topic's thread is `GET /api/xprs/history?room=<call>&root=<id>` (the
+opening post in every edition, then the comments), and `kind=blog` on the
+room lists the posts alone. Removal and sending away are the room's as above;
+a moderator's `r:<id> remove:message` names an identifier, so it takes a
+topic or a comment down as it takes a message.
 
 ### GET /api/log
 
@@ -375,7 +417,7 @@ they follow this document. Current extras:
 | GET /api/log | yes (plain strings) | yes (typed `t`/`m`) | converge on typed lines |
 | GET /api/session, POST /api/session | yes (core `WebChatApi`) | yes (`common/xprs_webchat`) | a signed nonce; the page proves its key to read its mail and to administer or moderate |
 | GET/POST /api/admin | yes (share server and server edition, core `WebChatApi`) | yes (`common/xprs_webchat`, `xapi_wc.c`) | the page offers it where `page.admin` says so |
-| GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | yes (`common/xprs_webchat`) | the page offers it where `page.rooms` says so |
+| GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | yes (`common/xprs_webchat`) | the page offers it where `page.rooms` says so; `kind`, `share`, `mirror` and `topics` are specified and not implemented by either engine |
 
 **One page, several engines.** The web chat page is the same file on every
 platform; a phone, a server or a board is an engine behind this API. Two

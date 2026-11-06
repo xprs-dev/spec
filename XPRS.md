@@ -3977,6 +3977,25 @@ room it does not seal (section 10.7). Closing a room stops the station serving
 it and forgets its options; the signed record and the key stay with the
 station, so reopening it is the same group.
 
+**A hosted room may be shared.** Its administrator names the stations that may
+hold a copy, or opens a public room to any, and from then on the station
+answers `cmd:history only:<X5>` (section 11.2) for the room to those stations
+and asks them the same on its own watermark (section 12.10.1): the standing
+neighbour ask of section 12.9.3 narrowed to one group. Everything that
+crosses is a signed original, verifying on its author's key or on the
+group's, entering the other station through its own admission; the stores are
+never compared, and section 12.9's line is not crossed. A station that
+**mirrors** a room this way serves it under the same signed record, to the
+same people, with no authority of its own in it: it holds the group's public
+key and not its private one, so it files and serves and never grants. What
+its own visitors post in the room is signed by them, filed, and pulled by the
+owner's next ask, so a mirror takes posts while the owner is unreachable and
+nothing is lost. A moderator the owner appointed acts from either station,
+and the owner may appoint the mirror station itself (`grant:<X3> role:mod`),
+so that station's administrator moderates in place. Private stays what it is
+here, served to members, now by two operators who can both read it, which a
+station says before the switch is turned.
+
 ### 10.10.2 Alerts a station shows
 
 A station that serves visitors shows them the warnings and notices it holds
@@ -7997,6 +8016,44 @@ that know each other, but a post is read later, by strangers, after being
 relayed by stations the author never met, and authorship is the only thing a
 reader has to go on. A signature costs 65 bytes on the last part.
 
+### 18.5 Comments
+
+A post is read later by people who were not listening, and some of them want
+to answer where the post is rather than in a conversation its author may never
+rejoin. **A comment is a `t:blog` with no `title:` that carries `r:`**, the
+reply of section 7.4 made on the post's own type. A first-level comment names
+the post with `r:` alone; a deeper one also carries `root:`, the post the
+whole thread hangs from, so a comment whose parent was lost still files under
+its post:
+
+```
+155  t:blog f:X1RD89 ts:2026-08-08_16:02:10 r:5f2c1a sig:<60 characters> m:Three centimetres is a lot. Which balun?
+179  t:blog f:X1QZ3N ts:2026-08-08_16:40:00 root:5f2c1a r:9b7e44 sig:<60 characters> m:A 1:1 current balun. It was the wire, not the balun.
+```
+
+A comment is a post in every other respect. It goes where its post went,
+undirected or to the same `d:`; it is kept, listed under its post and read
+later; it is split like any other text (section 7.6) and should be signed
+(section 18.4); it is corrected with `edit:` (section 7.8.1) and withdrawn
+with `r:<id> remove:blog` (section 7.8.2). It never replaces anything by
+title, because it has none. A comment on a post that was since replaced under
+its title (section 18.1) names the edition it answered, and a reader files it
+under the title, since the editions of a post are one post.
+
+A `t:blog` that carries both `title:` and `r:` is not a comment. It is a post
+that refers to another (section 7.5.1), listed under its own title.
+
+**A category of posts is a group.** A post with `d:` naming a closed group
+(section 10) is listed in that group, its comments beneath it, and the
+group's record says who may post and who may take a post down (sections 10.4
+and 10.10). Nothing is added for this: a titled post to a group is a topic,
+its comments are the thread, and a `t:message` to the same group is the
+group's conversation beside them.
+
+```
+196  t:blog f:X1RD89 d:X5F0RM ts:2026-08-08_16:02:10 title:balun-question tag:radio sig:<60 characters> m:Which balun did the dipole get, and did it matter?
+```
+
 ---
 
 ## 19. Passages
@@ -10051,7 +10108,9 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `t:sos` calls for help | not implemented; the current wire has an `sos` station symbol, which is a different thing and is not relayed further than any other packet |
 | `t:warning` warnings | not implemented; no source |
 | `t:info` notices | not implemented; no source |
-| `t:blog` posts | not implemented |
+| `t:blog` posts | **listed**: the web chat's Blog feed shows the posts a station holds, parts joined (section 6.6), the newest edition per title (section 18.1), moderation honoured; nothing composes or airs one yet |
+| `t:blog` comments, section 18.5 | not implemented; `docs/plan-forum.md` in the app repo is the plan |
+| Shared hosted rooms, section 10.10.1 | not implemented; the same plan |
 | `wave`, `swell`, `seatemp`, `vis` | not implemented; no source |
 | `t:passage`, `t:event`, `t:offer`, `t:need` | not implemented |
 | `price:` | not implemented |
