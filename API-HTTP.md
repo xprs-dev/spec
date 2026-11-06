@@ -211,6 +211,14 @@ operator's network and the operator already owns the radio.
 validation gets HTTP 400 and `{"ok": false, "error": "<reason>"}`; nothing
 is transmitted.
 
+A post longer than one packet (`t:blog`, XPRS.md 7.6) is sent as its parts,
+in order, each a call of its own and each aired as given. A part alone
+carries no verifiable signature: the last one's `sig:` covers the whole
+(9.1.1), so a station that insists on a signature on what it airs lets a
+part (`n:` present) through unsigned and unverified, as it would any part it
+heard on the air. Whoever reads the set joins it and judges the signature on
+the whole, which is what the web chat page does for its Blog feed.
+
 ### GET /api/admin, POST /api/admin
 
 The station's administrator and the settings it holds for visitors. The
