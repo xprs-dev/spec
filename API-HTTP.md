@@ -289,6 +289,10 @@ Each answers with the state, as GET does. The settings:
 | `local_private` | true, false | true | visitors who are not local do not get `scope:local` rows from `/api/xprs/history`; asked for `room=local` they get no rows and `"private": true` |
 | `who_may_post` | `everyone`, `local`, `nobody` | `everyone` | who `/api/xprs/send` accepts a wire from |
 | `who_may_alert` | `moderators`, `everyone` | `moderators` | who may post a `t:warning` or `t:info` through `/api/xprs/send` (XPRS.md 10.10.2); the administrator and the moderators always may, and an author always withdraws their own |
+| `reach_alerts`, `reach_posts`, `reach_chat` | `local`, `regional`, `global` | `regional`, `regional`, `global` | how far away a kind may come from and still be kept, shown, relayed and served (the bearer classes of XPRS.md 9.11): a `t:warning`/`t:info`, an undirected `t:blog`, an undirected `t:message`/`t:status`/`t:reaction` heard on a wider bearer is delivered if addressed and otherwise goes no further; never a `sos`, a followed author's, or an answer to the station's own ask |
+| `follow` | callsigns or `npub1…` keys, space-separated, at most 64 | empty | whose words are kept from anywhere and fetched from their own station across the internet |
+| `peers_mode` | `open`, `named` | `open` | `named`: records are exchanged only with `peers`; another station asking for history gets this station's own publications only, and an alert or a post heard on the air is kept only when its author or a station in its `via:` is a peer |
+| `peers` | station callsigns, space-separated, at most 32 | empty | the trusted stations of `peers_mode: named` |
 | `page_<name>` | text, at most 8000 characters | unset | what the web chat page defines for itself and its administrator writes: the station stores the string as given and reports it as `page.<name>` on `/api/services`; set to empty it is gone. The page uses `page_banner` (HTML under the header), `page_css` (a stylesheet of its own) and `page_logo` (HTML in place of the logo); a station need know none of these |
 
 ### GET /api/rooms, POST /api/rooms
