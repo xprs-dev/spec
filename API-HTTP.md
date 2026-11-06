@@ -289,7 +289,7 @@ Each answers with the state, as GET does. The settings:
 | `local_private` | true, false | true | visitors who are not local do not get `scope:local` rows from `/api/xprs/history`; asked for `room=local` they get no rows and `"private": true` |
 | `who_may_post` | `everyone`, `local`, `nobody` | `everyone` | who `/api/xprs/send` accepts a wire from |
 | `who_may_alert` | `moderators`, `everyone` | `moderators` | who may post a `t:warning` or `t:info` through `/api/xprs/send` (XPRS.md 10.10.2); the administrator and the moderators always may, and an author always withdraws their own |
-| `banner` | HTML, at most 4000 characters | a short template | shown under the page's header to every visitor (`page.banner` on `/api/status`); the administrator writes the station's own, empty shows none |
+| `banner` | HTML, at most 4000 characters | empty | shown under the page's header to every visitor (`page.banner` on `/api/services`); empty, the page shows its own text |
 
 ### GET /api/rooms, POST /api/rooms
 
