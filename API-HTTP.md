@@ -51,7 +51,7 @@ Who and how this station is.
   "heap_free": 41200,
   "time": { "synced": true, "epoch": 1755556270, "tz": "+00:00" },
   "radios": { "espnow": true, "lan": true },
-  "indexer": { "enabled": true, "count": 132, "epoch": "A" }
+  "archiver": { "enabled": true, "count": 132, "epoch": "A" }
 }
 ```
 
@@ -69,7 +69,7 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   "ok": true,
   "serve": ["index", "history", "mailbox"],
   "features": { "digipeater": false, "bridge": true, "igate": true,
-                "indexer": true, "share": false },
+                "archiver": true, "share": false },
   "api": ["status", "services", "history", "mail", "send", "log"]
 }
 ```
