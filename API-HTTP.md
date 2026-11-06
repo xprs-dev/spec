@@ -320,11 +320,15 @@ the asker would be taken. A moderator or the administrator also gets `members`,
   answers `cmd:history only:<call>` to those stations and asks them the same
   (XPRS.md 10.10.1). Sharing a private room is served-to-members at two
   operators, and the page says so before it asks.
-- `mirror` with `call` (the room's `X5`) and `owner` (the station that holds
-  its key): this station fetches the group's identity from the owner, then
-  its record and its posts, and serves the room as the owner's record says,
-  with no authority of its own in it. `unmirror` with `call` stops that and
-  forgets the copy's options; what was filed stays filed.
+- `mirror` with `call` (the room's `X5`), `owner` (the station that holds
+  its key) and optionally `name`, `about`, `kind`, `visibility`, `posting`
+  (the copy's own serving options): this station fetches the group's
+  identity from the owner, then its record and its posts, and serves the room
+  as the owner's record says, with no authority of its own in it. `unmirror`
+  with `call` stops that and forgets the copy's options; what was filed stays
+  filed. `sync` with `call` asks the room's peers now rather than at the next
+  period. A shared room lists `peers` and `seen` (stations that asked for it
+  and were answered); a mirrored one carries `mirrored: true` and `owner`.
 - `close` with `call`: the station stops serving the room and forgets its
   options; the key and the signed record stay.
 - `add`, `appoint`, `remove` with `call` and `member`: the station signs, as
