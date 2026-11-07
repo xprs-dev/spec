@@ -291,7 +291,7 @@ Each answers with the state, as GET does. The settings:
 | `who_may_alert` | `moderators`, `everyone` | `moderators` | who may post a `t:warning` or `t:info` through `/api/xprs/send` (XPRS.md 10.10.2); the administrator and the moderators always may, and an author always withdraws their own |
 | `reach_alerts`, `reach_posts`, `reach_chat` | `local`, `regional`, `global` | `regional`, `regional`, `global` | how far away a kind may come from and still be kept, shown, relayed and served (the bearer classes of XPRS.md 9.11): a `t:warning`/`t:info`, an undirected `t:blog`, an undirected `t:message`/`t:status`/`t:reaction` heard on a wider bearer is delivered if addressed and otherwise goes no further; never a `sos`, a followed author's, or an answer to the station's own ask |
 | `follow` | callsigns or `npub1…` keys, space-separated, at most 64 | empty | whose words are kept from anywhere and fetched from their own station across the internet |
-| `peers_mode` | `open`, `named` | `open` | `named`: records are exchanged only with `peers`; another station asking for history gets this station's own publications only, and an alert or a post heard on the air is kept only when its author or a station in its `via:` is a peer |
+| `peers_mode` | `open`, `named`, `mesh` | `open` | `named`: records are exchanged only with `peers`; another station asking for history gets this station's own publications only, and an alert or a post heard on the air is kept only when its author or a station in its `via:` is a peer |
 | `peers` | station callsigns, space-separated, at most 32 | empty | the trusted stations of `peers_mode: named` |
 | `page_<name>` | text, at most 8000 characters | unset | what the web chat page defines for itself and its administrator writes: the station stores the string as given and reports it as `page.<name>` on `/api/services`; set to empty it is gone. The page uses `page_banner` (HTML under the header), `page_css` (a stylesheet of its own), `page_logo` (HTML in place of the logo) and `page_pos` (the station's location as `lat,lon,radius_km`, snapped by the page to the centre of a square of that radius before it is saved, so the exact place never reaches the station; `0` is exact); a station need know none of these |
 
@@ -340,6 +340,15 @@ the asker would be taken. A moderator or the administrator also gets `members`,
   out in the answer to their neighbour ask, and a station that meets a
   trusted peer's room that way mirrors it on its own, so a mesh converges on
   the same forum categories. The room's JSON carries `mesh`.
+- A room of kind `mesh` is a mesh group: its roster is the station's trusted
+  set when `peers_mode` is `mesh` (docs/plan-mesh-trust.md, the app repo).
+  A station holds at most one, created here or joined with `mirror`. `add`,
+  `appoint` and `remove` grant and revoke stations; at a station that
+  co-administers a mirrored mesh they are signed by the station's own key.
+  `accept` with `call` accepts the offer the mesh's record holds for this
+  station, signed by its key. A mesh takes no posts; its JSON carries
+  `station_role` (`owner`, `mod`, `member`, `invited`, `none`) and, when
+  invited, `station_offer`.
 - `mirror` with `call` (the room's `X5`), `owner` (the station that holds
   its key) and optionally `name`, `about`, `kind`, `visibility`, `posting`
   (the copy's own serving options): this station fetches the group's
