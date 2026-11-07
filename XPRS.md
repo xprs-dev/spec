@@ -4210,7 +4210,10 @@ The answer is the ordinary sequence of section 11.1, accepted, then done:
 Between them the station re-airs the packets themselves. `code:404` says nothing
 was held for that window, `code:403` that the station will not serve this
 requester, and `code:429` that it is over budget, with, by section 30, the
-names of stations that might serve instead.
+names of stations that might serve instead. A station that replays to one
+requester at a time answers a second one `code:429 m:busy` while the first
+replay is in flight: a moment, not a budget, so a standing ask (12.9.3,
+12.10.1) asks again a minute later rather than keeping its distance.
 
 **The replay is the original packets, unchanged.** `f:`, `ts:` and `sig:` are
 exactly as first transmitted, so authorship survives having been held for days

@@ -293,7 +293,7 @@ Each answers with the state, as GET does. The settings:
 | `follow` | callsigns or `npub1…` keys, space-separated, at most 64 | empty | whose words are kept from anywhere and fetched from their own station across the internet |
 | `peers_mode` | `open`, `named` | `open` | `named`: records are exchanged only with `peers`; another station asking for history gets this station's own publications only, and an alert or a post heard on the air is kept only when its author or a station in its `via:` is a peer |
 | `peers` | station callsigns, space-separated, at most 32 | empty | the trusted stations of `peers_mode: named` |
-| `page_<name>` | text, at most 8000 characters | unset | what the web chat page defines for itself and its administrator writes: the station stores the string as given and reports it as `page.<name>` on `/api/services`; set to empty it is gone. The page uses `page_banner` (HTML under the header), `page_css` (a stylesheet of its own) and `page_logo` (HTML in place of the logo); a station need know none of these |
+| `page_<name>` | text, at most 8000 characters | unset | what the web chat page defines for itself and its administrator writes: the station stores the string as given and reports it as `page.<name>` on `/api/services`; set to empty it is gone. The page uses `page_banner` (HTML under the header), `page_css` (a stylesheet of its own), `page_logo` (HTML in place of the logo) and `page_pos` (the station's location as `lat,lon,radius_km`, snapped by the page to the centre of a square of that radius before it is saved, so the exact place never reaches the station; `0` is exact); a station need know none of these |
 
 ### GET /api/rooms, POST /api/rooms
 
@@ -334,7 +334,12 @@ the asker would be taken. A moderator or the administrator also gets `members`,
   public one, where an empty list means any station). The station then
   answers `cmd:history only:<call>` to those stations and asks them the same
   (XPRS.md 10.10.1). Sharing a private room is served-to-members at two
-  operators, and the page says so before it asks.
+  operators, and the page says so before it asks. `mesh` (true or false)
+  shares the room with every trusted station instead (`peers_mode: named`,
+  `peers` on `/api/admin`): it is served to each of them, its identity goes
+  out in the answer to their neighbour ask, and a station that meets a
+  trusted peer's room that way mirrors it on its own, so a mesh converges on
+  the same forum categories. The room's JSON carries `mesh`.
 - `mirror` with `call` (the room's `X5`), `owner` (the station that holds
   its key) and optionally `name`, `about`, `kind`, `visibility`, `posting`
   (the copy's own serving options): this station fetches the group's
