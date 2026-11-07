@@ -987,6 +987,66 @@ For reading, filtering, indexing and shipping packets between programs, the
 object form is enough and the order does not matter. It matters when a
 signature or an identifier has to still be true afterwards.
 
+### 4.11 Formatted text
+
+The `m:` of a `t:blog` (posts, forum topics and comments, section 18) is
+**formatted text**: a small part of Markdown, read by a reader that
+understands it and readable as it is by one that does not. Every other type
+keeps plain text; a reader MAY draw a `t:message` or `t:status` the same way,
+and a sender should not count on it.
+
+**Lines.** A packet is one line (section 13.4) and split parts are joined with
+one space (section 7.6), so a newline cannot travel. A line break inside `m:`
+is U+2028 LINE SEPARATOR and a paragraph break is U+2029 PARAGRAPH SEPARATOR.
+They are ordinary characters, not escapes (section 2, rule 1): three bytes
+each in UTF-8, counted like any other, and a reader that draws them as a space
+has lost the layout, not the words. A sender drops the spaces around them, and
+the section 7.6 splitter, which cuts only at U+0020, never separates one from
+its line. LF, CR and the other control characters never appear in `m:`.
+
+**What is read.** Nothing else:
+
+| Written | Read as |
+|---|---|
+| a line starting `# `, `## `, `### ` | a heading, three sizes |
+| `**bold**`, `*italic*` or `_italic_`, `~~struck~~` | emphasis; `_` and `*` inside a word are text, so `snake_case` stays |
+| `` `code` `` | literal text, nothing inside it read |
+| lines starting `- ` (or `* `, `+ `), lines starting `1. ` | a list, bulleted or numbered |
+| lines starting `> ` | a quotation |
+| a line of `---` | a rule |
+| `[words](https://...)` and a bare `https://...` | a link; only `http://` and `https://` |
+| `![words](<ref>)` | an image, by reference (below) |
+| `[words](<ref>)` | a file, by reference |
+| `@CALLSIGN` | a mention, as section 7.5.2 already says |
+
+**No HTML.** A reader escapes everything it did not read as one of the forms
+above. Text that looks like a tag is text. A link to any other scheme is text.
+
+**Images and files are references, not bytes.** The target of an image or a
+file is a `ref` (section 4.3): the SHA-256 as 43 base64url characters, a dot,
+the type, exactly the value `file:` carries, **without** `file:` in front.
+The paragraph breaks are shown as `<U+2029>`; on the wire each is one
+character:
+
+```
+t:blog f:X1QZ3N ts:2026-08-08_14:26:40 title:antenna-notes sig:<60 characters> m:## The dipole<U+2029>Rebuilt and **measured** at last.<U+2029>![the feed point](nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg)
+```
+
+The words travel; the picture does not. A station on LoRa or BLE forwards
+the post at its size and the reader there sees the alt text where the image
+would be. A reader with a link that can carry it fetches the bytes by the hash
+(section 8.1 to find who holds them, section 11.2 to fetch), under the rule of
+section 7.7.7: fetched on sight only where the link carries it, and on a
+shared radio only when a person asks. The `file:` prefix is left out on
+purpose: `file:` inside `m:` is a reference that a composer lifts into the
+field (section 7.7.7), and a reference here belongs to its place in the text.
+The `file:` field of section 18.3 remains the post's one attached file; images
+in the text are in addition to it and are not repeated there.
+
+A writer should keep an image small (a picture for a post is tens of
+kilobytes, not the camera's megabytes), because every reader who wants it
+fetches it once from somebody.
+
 ---
 
 ## 5. Message identifiers
@@ -7967,8 +8027,9 @@ A later post from the same station with the same `title:` and a newer `ts:`
 be edited and a post can, which is the second real difference between them.
 
 `title:` is a slug rather than a sentence because no value except `m:` may
-contain a space. The human title is the first line of the text, where a reader
-expects it.
+contain a space. A reader shows it with its dashes read as spaces; a writer
+who wants a title in other words puts a heading on the first line of the text
+(section 4.11).
 
 ### 18.2 How long a post can be
 
@@ -7983,7 +8044,8 @@ length follows from the packet limit and what the envelope costs:
 | titled, signed | 183, less 63 on the last part | 1584 characters |
 
 **About 1650 characters for a normal titled post**, which is three or four
-paragraphs. That is a short essay, not an article.
+paragraphs. That is a short essay, not an article. Formatting (section 4.11)
+is counted like the words: a line break costs three bytes, `**` two.
 
 ```
 t:blog f:X1QZ3N ts:2026-08-08_14:26:40 title:antenna-notes n:1/3 m:I rebuilt the dipole this weekend and measured it properly for once.
@@ -8011,6 +8073,9 @@ gets. The limit is not raised for posts. A post split across forty packets would
 be unreadable until every one of them arrived, and on a channel where a single
 advertisement is already a lottery that is a poor way to publish. A post that
 genuinely needs more room is a document, and a document is a file.
+
+Images in the text itself are references too (section 4.11): a post may show
+several, and carries none of their bytes.
 
 ### 18.4 Signing
 
@@ -9762,6 +9827,11 @@ telling it nothing.
 
 ### Mentions, threads and files
 
+Formatted text (section 4.11): a `t:blog`'s `m:` is a little Markdown (headings,
+`**bold**`, `*italic*`, lists, `>` quotes, http(s) links), never HTML. A line
+break is U+2028, a paragraph U+2029. An image is `![words](<ref>)`, the hash
+and type with no `file:` before it, fetched only by whoever can and wants.
+
 A mention is `@CALLSIGN` **inside `m:`**, no key. `@` then uppercase letters,
 digits, `-` and `/`, ending at the first character that is not one; uppercase is
 why `me@example.com` is not a mention. No limit but the packet limit. Being
@@ -10111,7 +10181,8 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `t:sos` calls for help | not implemented; the current wire has an `sos` station symbol, which is a different thing and is not relayed further than any other packet |
 | `t:warning` warnings | not implemented; no source |
 | `t:info` notices | not implemented; no source |
-| `t:blog` posts | **listed**: the web chat's Blog feed shows the posts a station holds, parts joined (section 6.6), the newest edition per title (section 18.1), moderation honoured; nothing composes or airs one yet |
+| `t:blog` posts | **implemented in the web chat**: its Blog feed lists the posts a station holds, parts joined (section 6.6), the newest edition per title (section 18.1), moderation honoured; it writes one with a live preview of its formatted text (section 4.11), images stored on the station by reference, and shows the writer's post at once while the station files it |
+| Formatted text, section 4.11 | **implemented in the web chat** (posts, forum topics and comments); the app draws `m:` as plain text |
 | `t:blog` comments, section 18.5 | not implemented; `docs/plan-forum.md` in the app repo is the plan |
 | Shared hosted rooms, section 10.10.1 | not implemented; the same plan |
 | `wave`, `swell`, `seatemp`, `vis` | not implemented; no source |

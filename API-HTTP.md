@@ -90,6 +90,10 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   section 10.10.2; the page lists the ones it holds as a feed), every
   `page_<name>` setting the administrator set on `/api/admin` as `<name>`
   (the page's banner, stylesheet and logo), and `app`.
+- `file` says the station keeps and serves files by reference
+  (`/api/xprs/file/<ref>`, below): `{"get": true, "put": true, "max": 2097152}`,
+  `max` the largest it takes or hands out through this API, in bytes. A
+  station without it serves none, and the page offers no upload there.
 
 ### GET /api/xprs/history
 
@@ -220,6 +224,35 @@ carries no verifiable signature: the last one's `sig:` covers the whole
 part (`n:` present) through unsigned and unverified, as it would any part it
 heard on the air. Whoever reads the set joins it and judges the signature on
 the whole, which is what the web chat page does for its Blog feed.
+
+### GET /api/xprs/file/{ref}, POST /api/xprs/file/{ref}
+
+A file by its content reference: the `ref` of XPRS.md 7.7, the SHA-256 as 43
+base64url characters (or 64 hex), a dot, the type. It is the store the
+station's file lanes already end in, offered over HTTP; nothing here knows a
+post, a page or a feature. A formatted text (XPRS.md 4.11) names its images
+this way, and a reader on this API fetches them here.
+
+`GET` answers the bytes, `Content-Type` from the type, with
+`Cache-Control: public, max-age=31536000, immutable` and the hex digest as
+`ETag` (the bytes under a reference never change). It answers 404
+`{"ok": false, "error": "not held"}` when the station does not hold them,
+403 when the file's audience is not public (XPRS.md 11.2: the hash is public,
+the bytes are not, and a visitor on this API proves nothing), 413 when it is
+larger than `file.max`, and 400 for a value that is not a reference.
+
+`POST` stores the request body (raw bytes, any `Content-Type`) under the
+reference, and only when the bytes hash to it:
+
+```json
+{ "ok": true, "ref": "nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg", "size": 48213 }
+```
+
+400 when the bytes do not match the reference or there are none, 413 past
+`file.max`, 429 past the same per-visitor rate as `/api/xprs/send`. What is
+stored is a stranger's deposit (XPRS.md 12.11): the station may evict it
+under its own storage policy. Storing a file airs nothing; whoever wants the
+bytes asks for them by the reference (XPRS.md 8.1, 11.2).
 
 ### GET /api/admin, POST /api/admin
 
@@ -455,6 +488,7 @@ they follow this document. Current extras:
 | GET /api/log | yes (plain strings) | yes (typed `t`/`m`) | converge on typed lines |
 | GET /api/session, POST /api/session | yes (core `WebChatApi`) | yes (`common/xprs_webchat`) | a signed nonce; the page proves its key to read its mail and to administer or moderate |
 | GET/POST /api/admin | yes (share server and server edition, core `WebChatApi`) | yes (`common/xprs_webchat`, `xapi_wc.c`) | the page offers it where `page.admin` says so |
+| GET/POST /api/xprs/file/{ref} | yes (core `WebChatApi`, both hosts) | yes (`xprs_api/xapi_wc.c`; 96 kB a file on the board's own flash, 2 MB with a card) | the page offers images where `file` says so, and shrinks a picture to `file.max` |
 | GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | yes (`common/xprs_webchat`) | the page offers it where `page.rooms` says so; `kind`, `share`, `mirror` and `topics` are specified and not implemented by either engine |
 
 **One page, several engines.** The web chat page is the same file on every
