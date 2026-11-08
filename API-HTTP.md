@@ -92,6 +92,14 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   section 10.10.2; the page lists the ones it holds as a feed), every
   `page_<name>` setting the administrator set on `/api/admin` as `<name>`
   (the page's banner, stylesheet and logo), and `app`.
+- `urls` and `urls_pending` say where the internet reaches this station's web
+  chat, on a host with the public-name service (the server edition): the
+  addresses that work now (`https://` once a certificate is served, else
+  `http://`), and the names its public addresses give that nobody can reach
+  yet, because the router has not let TCP ports 80 and 443 in for that
+  address or the test from outside has not run. Such a station adds
+  `station` to `page.tabs`; the page lists both on its Station view. A
+  station without the service leaves both out.
 - `file` says the station keeps and serves files by reference
   (`/api/xprs/file/<ref>`, below): `{"get": true, "put": true, "max": 2097152}`,
   `max` the largest it takes or hands out through this API, in bytes. A
