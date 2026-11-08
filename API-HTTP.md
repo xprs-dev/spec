@@ -83,6 +83,8 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   title. A station that leaves it out is asked `/api/status` (`callsign`).
 - `page` says what the web chat page may offer here (the webchat repo's
   README): `tabs`, `session` (a visitor can prove their key, `/api/session`),
+  `mailbox` (the station offers to hold a visitor's mail and takes their
+  signed `t:mailbox` and `t:receipt` through `/api/xprs/send`, below),
   `admin` (this station has an administrator, `/api/admin`), `moderation`
   (its rooms have moderators, XPRS.md section 10.10), `rooms` (it hosts
   closed groups of its own, `/api/rooms`, section 10.10.1), `alerts` (who may
@@ -164,6 +166,39 @@ Response is the history shape, filtered to records that carry `d:` naming
 that callsign. This is the question a returning station asks first, and the
 question an operator asks when deciding whether the mailbox is doing its
 job.
+
+### GET /api/session, POST /api/session
+
+A visitor proves their key. `GET` gives a one-time nonce; `POST` takes
+`{"wire": "t:session f:<call> ts:<stamp> m:<nonce> sig:<..>"}`, signed with
+the key the station has heard bound to that callsign (a `t:identity k:`
+through `/api/xprs/send` first; `409` until it has). The reply names the
+session and, on a station that is an archiver, where the visitor's mail is
+kept (XPRS.md 9.12, 12.8.3):
+
+```json
+{ "ok": true, "session": "<token>", "call": "X1QZ3N",
+  "holders": [], "offer": "X3RLY7", "mail": 0 }
+```
+
+- `holders` -- the callsigns holding this visitor's mail: the `hold:` of the
+  active declarations the station verified, and the station itself when it
+  serves the visitor.
+- `offer` -- present only when `holders` is empty and the station has room:
+  it offers to be the visitor's mailbox and serves them from this moment
+  (their mail is kept longest, 12.11). Only the visitor's key may say where
+  their mail goes (9.12), so the page answers with a signed
+  `t:mailbox f:<call> ts:<stamp> hold:<offer> until:<+30d> sig:<..>` through
+  `/api/xprs/send`; every other archiver learns of it from that packet.
+- `mail` -- messages the station holds for the visitor, acknowledged ones
+  excluded.
+
+A `t:mailbox` or `t:receipt` through `/api/xprs/send` must verify against a
+key the station knows (`409` when it has none for `f:`, `400` when the
+signature does not hold): both are acted on by whoever hears them, and a
+forged one misroutes or deletes somebody else's mail. The page acknowledges
+the mail it shows with `t:receipt ... r:<id> s:ack` (9.7.1), which is what
+lets every holder release its copy.
 
 ### GET /api/xprs/devices
 
