@@ -141,18 +141,23 @@ broadcast), `type`, `sig` (`verified`, `unverified`, `forged`, `none`),
 `own` (true when this station originated it), `wire` (the packet verbatim --
 the author's bytes, the author's signature). `held` is the archive's total.
 
-Mail in the general history listing follows the station's own policy. The
-radio rule (XPRS.md section 36) hands mail only to its two parties; an HTTP
-API answering on the operator's own LAN may show everything it holds, and a
-station that instead applies the radio rule here must say so in its
-documentation. The reference ESP32 implementation shows everything: whoever
-can reach the API owns the station.
+Mail (a record carrying `d:`) in the general listing follows the radio rule
+(XPRS.md 12.7): it belongs to its two parties. A request with no `session`
+gets the public rows only. A `session` (`/api/session`, a proven key) adds
+the mail its callsign sent or received; the station's owner or administrator
+reads all of it. An earlier edition of this document let an HTTP API on the
+operator's own LAN show everything it held, and both reference stations did;
+a hotspot full of strangers is not the operator's LAN, and the ESP32 station
+now applies the rule like the Dart core.
 
 ### GET /api/xprs/mail
 
 Store-and-forward: what the station holds FOR a callsign.
 
 - `call` -- required; the callsign whose waiting mail is listed.
+- `session` -- required unless the station's documentation says otherwise:
+  a session proving `call` itself, or the owner's or administrator's;
+  anything else is `403`.
 - `limit` -- as above.
 
 Response is the history shape, filtered to records that carry `d:` naming
