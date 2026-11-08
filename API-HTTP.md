@@ -208,6 +208,30 @@ forged one misroutes or deletes somebody else's mail. The page acknowledges
 the mail it shows with `t:receipt ... r:<id> s:ack` (9.7.1), which is what
 lets every holder release its copy.
 
+### GET /api/names, POST /api/names
+
+The names keeper (XPRS.md 13.0.3), on the one station that keeps a zone for
+the others. A station without it answers 404.
+
+`GET` gives a challenge: `{"ok": true, "zone": "xprs.dev", "station":
+"X3PTZM", "nonce": "<16 hex>", "you": "<the address the request came from>"}`.
+The nonce is good for five minutes, once. `you` is what a claim must name:
+a client behind a NAT or a proxy sees another address there and makes no
+claim.
+
+`POST` takes the signed claim as the body, one packet:
+`t:service f:<call> d:<station> ts:<now> dial:<you> k:<npub> m:<nonce> sig:<..>`.
+`200 {"ok": true, "name": "x3ptzm.xprs.dev", "next": 604800}` names the
+station (`next`: seconds until it should claim again; `"dns": "pending"` when
+the zone's API asked to wait and the keeper will write it from its sweep).
+Refusals: `400` malformed or not a claimable label, `403` with the reason
+(`not signed by k:`, `f: is not derived from k:`, `no such challenge`, `ts: is
+not now`, `ts: is not after the last claim`, `dial: is not where this request
+came from` with `you`, `that address cannot be a station here`), `409 held by
+another key` with `until`, `413` body over 2 KB, `429` the per-address limit or
+the day's new-label cap. Everything is checked before anything is stored or
+written; the rules are the spec's.
+
 ### GET /api/xprs/devices
 
 Who is in reach: the stations heard recently, which is what a station's own

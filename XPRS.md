@@ -6537,6 +6537,66 @@ bandwidth, and newcomers go where there is room. An archiver may still decline
 a particular deposit (22.2) while saying `room:yes`; like every advertised
 service (13.3), `room:` is a forecast, not a promise.
 
+### 13.0.3 A name for a dialable station: the names keeper
+
+A `dial:` that is an address changes when the network renumbers; a name
+does not. A station gets one from a **names keeper**: a station that holds a
+DNS zone (`xprs.dev`) and writes `<callsign>.<zone>` for any station that
+proves its key. Nothing is registered and nobody is asked: an `X1` to `X5`
+callsign is derived from its key (section 3), so a signature proves the right
+to the label.
+
+The claim is a directed `t:service` carrying the address the claimant answers
+on, the keeper's challenge and the claimant's key:
+
+```
+t:service f:X3PTZM d:X3KEEP ts:2026-11-09_10:00:00 dial:178.202.105.29 k:npub1... m:3f9a1c2e4b7d6a80 sig:<60 characters>
+```
+
+`m:` is the nonce the keeper issued moments before (the free-text field is
+the last one, so `k:` stays intact); `k:` is the key, as in 29.2, because the
+keeper may never have heard this station. One claim names ONE address and is
+sent over a connection FROM that address: the keeper accepts `dial:` only when
+it equals the address the request arrived from, which proves the claimant can
+send from it and leaves a replayed claim useless anywhere else. A station with
+both families claims twice, once over each. The keeper's answer is the name;
+the station then tests it from outside like any name it has, gets a
+certificate for it and publishes it as its `url:` (6.3.2).
+
+The keeper checks, in this order and before it stores or writes anything:
+the shape; the signature against `k:`; that `f:` derives from `k:`; the
+nonce, single-use and five minutes old at most; `ts:` within five minutes of
+its clock and later than the last claim it accepted from that key; `dial:`
+equal to the source address, which must be a public unicast address that is
+not the keeper's own (unless the claimant is the keeper) and not where the
+zone's apex points. The label is the bare callsign, lower case; the zone's own
+labels (`www`, `names`, anything starting with `_` or `xn--`) are never given.
+
+**The lock.** A callsign is two to five characters, so a second key with the
+same callsign is cheap to grind. A label therefore belongs to the first key
+that claimed it for at least **six months after that key's last claim**: an
+active station keeps its name for as long as it lives, a silent one frees it
+after six months. A claim from another key meanwhile is refused with
+`held by another key` and the date the lock ends, so the claimant can take a
+longer callsign or wait. DNS records of a label silent for 90 days are
+removed while the lock still holds. Only the keeper's operator can free a
+label sooner, for a key that was lost, and only from the keeper's own console.
+
+Limits keep the zone and the registrar's API usable: ten challenges or claims
+a minute from one address, one record write per key in ten minutes unless the
+address changed, two hundred new labels a day. The keeper writes only `A` and
+`AAAA` for a label, never a wildcard or any other type, and sets the zone's
+`CAA` so that only the certificate authority it names may issue for it.
+
+Every station shares one parent domain, so a station's page sets no cookie
+for the parent and trusts none from another label; the certificate authority
+counts the zone as one registered domain for its weekly limit on new
+certificates, which the Public Suffix List lifts when the zone grows past it.
+The keeper is found at `names.<zone>`, the one label it keeps for itself; its
+own callsign label points at the same address. A keeper announces itself as a
+service like any other (`serve:other m:names`); a second keeper for the same
+zone would need the first one's records, since two tables would defeat the lock.
+
 ### 13.1 What this is not
 
 **Physical goods and help are `t:offer`, not this.** Water, fuel, shelter, a
@@ -10137,6 +10197,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 12.8.1 automated return leg (release on hearing, forward toward gossip) | **implemented** on the Flutter node (funnel-triggered release, `XprsForwarder` with `via:` and the loop check) and in the shared ESP32 app (release-on-hearing off the seen funnel, paced re-air, receipt purge); the T-Dongle keeps its original `blemesh_scf_*` loop. Bench-validated end to end. Since 2026-10-25 the Flutter forwarder sends to EVERY gateway with a fresh live sighting (one copy each, remembered per gateway), re-runs when gossip gains a new gateway for a held recipient (`XprsGossip.onSighting`), and forwards nothing for a recipient it can reach itself; the ESP32 archiver still picks one gateway. Proven on the three-station bench (`test/xprs_reach_anywhere_sim_test.dart`): a BLE-only station reached from the internet through the phone that reported hearing it, two reporters both served and released by one receipt, mail deposited before any report moving when the report arrives |
 | Section 12.9.4 gossip (layers, budgets, always-on archivers) | **implemented** on the Flutter side (`xprs_gossip.dart`: L2/L3 tables, K/G caps, signer quotas, byte budget, the always-on-archiver mode and the miss-path ask) with DoS-probe unit tests; the shared ESP32 app keeps the need-to-know ring. Always-on is a LOCAL budget setting in both (`index_always_on` on a station, Always on in the app), never announced: each side reads a peer's depth off `count:` and `uptime:` instead, and both stopped airing and parsing `serve:archive,super` in 2026-09 |
 | Section 12.12 reaching a callsign from anywhere | **implemented and bench-validated**: an internet sender on a foreign network reached a WiFi-less BLE-only pocket through deposit, gossip, forward and release-on-hearing, with signatures intact at every hop |
+| Section 13.0.3 the names keeper (`<callsign>.xprs.dev`) | **implemented** on the server edition (`core/lib/src/services/names/`): the challenge and the signed `t:service dial: k: m:` claim over `/api/names`, the source-address rule, the six-month lock per label, the rate limits, reserved labels, deSEC as the zone's API and the CAA record; the station client claims once per address family over a connection of that family and the public-name service tests and certifies the name. Not on the ESP32 (no public address of its own) |
 | Section 12.12.1 constrained internet transports (directed replies, directed asks, deposit, sender-parks-own-mail) | **implemented** on the Flutter side; specified after being proven necessary on public hubs |
 | Section 12.10.2 the poll adapts to what it finds (per-archiver interval, the quiet ladder, the peer's floor, 429 as authority) | **implemented** on the Flutter side, with the ladder as pure functions under unit test; bench-measured 600s down to the 15s floor under load and back up to the ceiling when the room went quiet |
 | Section 11.2.1 a continuation must make progress | specified in this revision after both halves failed on the bench; the asker's half (a stalled resume is not news) is **implemented** on the Flutter side, the responder's `until:` half is not yet |
