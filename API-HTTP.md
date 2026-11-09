@@ -100,6 +100,11 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   address or the test from outside has not run. Such a station adds
   `station` to `page.tabs`; the page lists both on its Station view. A
   station without the service leaves both out.
+- `rns` describes the Reticulum node on the station's TCP port (XPRS.md 13.4):
+  `{"port": 4242, "reachable": true, "dial": "x3ptzm.xprs.dev"}`. `reachable`
+  is what the names keeper found from outside (`null` until it has tested),
+  `dial` is what the station announces as `dial:` because of it, absent while
+  it announces none. The page shows it on its Station view.
 - `file` says the station keeps and serves files by reference
   (`/api/xprs/file/<ref>`, below): `{"get": true, "put": true, "max": 2097152}`,
   `max` the largest it takes or hands out through this API, in bytes. A
@@ -223,7 +228,10 @@ claim.
 `t:service f:<call> d:<station> ts:<now> dial:<you> k:<npub> m:<nonce> sig:<..>`.
 `200 {"ok": true, "name": "x3ptzm.xprs.dev", "next": 604800}` names the
 station (`next`: seconds until it should claim again; `"dns": "pending"` when
-the zone's API asked to wait and the keeper will write it from its sweep).
+the zone's API asked to wait and the keeper will write it from its sweep;
+`"rns": "open"` or `"closed"` with `"rns_port": 4242`, whether the keeper's
+signed ping to that port from outside came back from the claimant, XPRS.md
+13.0.3).
 Refusals: `400` malformed or not a claimable label, `403` with the reason
 (`not signed by k:`, `f: is not derived from k:`, `no such challenge`, `ts: is
 not now`, `ts: is not after the last claim`, `dial: is not where this request

@@ -6582,6 +6582,17 @@ longer callsign or wait. DNS records of a label silent for 90 days are
 removed while the lock still holds. Only the keeper's operator can free a
 label sooner, for a key that was lost, and only from the keeper's own console.
 
+**The keeper also tests the claimant's port.** After it accepts a claim it
+connects back to the claimed address on TCP 4242 (13.4) and sends
+`t:ping f:<keeper> d:<claimant> ts:<now>`; the port is open when a `t:pong`
+comes back from the claimant's callsign, signed by the key the claim carried.
+A port forwarded to another program, or to another station, does not pass. The
+answer tells the station (`rns: open` or `closed`), which a station cannot learn
+from inside its own network: with it open, the station names itself in `dial:`
+(13.0.2) on its announcements, and drops `dial:` when a later test fails. That
+is how a server with a public address becomes a Reticulum entry point others
+can find by callsign.
+
 Limits keep the zone and the registrar's API usable: ten challenges or claims
 a minute from one address, one record write per key in ten minutes unless the
 address changed, two hundred new labels a day. The keeper writes only `A` and
@@ -6661,6 +6672,16 @@ Two rules keep the demultiplexing honest, and they are load-bearing:
 - **Nothing that is not HDLC may ever begin with `0x7E`** on this port. A
   future binary variant that starts with the flag byte breaks the one-byte
   decision, so there will not be one.
+
+**Both address families, one socket.** A station listens on 4242 for IPv4 and
+IPv6 alike, so a station whose network gives it only IPv6 (a shared IPv4
+address, DS-Lite) is still reachable by every client that has IPv6. An IPv4
+peer on such a socket appears as `::ffff:a.b.c.d` and is the IPv4 address it
+says for every rule below.
+
+A station that serves the internet (the server edition) asks its router for
+4242 together with its web ports, and announces it as `dial:` only once the
+names keeper has reached it from outside (13.0.3).
 
 The bearer is decided by where the peer actually is, because a TCP socket does
 not say. A connection from a private or link-local address is the LAN it looks
@@ -10197,7 +10218,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 12.8.1 automated return leg (release on hearing, forward toward gossip) | **implemented** on the Flutter node (funnel-triggered release, `XprsForwarder` with `via:` and the loop check) and in the shared ESP32 app (release-on-hearing off the seen funnel, paced re-air, receipt purge); the T-Dongle keeps its original `blemesh_scf_*` loop. Bench-validated end to end. Since 2026-10-25 the Flutter forwarder sends to EVERY gateway with a fresh live sighting (one copy each, remembered per gateway), re-runs when gossip gains a new gateway for a held recipient (`XprsGossip.onSighting`), and forwards nothing for a recipient it can reach itself; the ESP32 archiver still picks one gateway. Proven on the three-station bench (`test/xprs_reach_anywhere_sim_test.dart`): a BLE-only station reached from the internet through the phone that reported hearing it, two reporters both served and released by one receipt, mail deposited before any report moving when the report arrives |
 | Section 12.9.4 gossip (layers, budgets, always-on archivers) | **implemented** on the Flutter side (`xprs_gossip.dart`: L2/L3 tables, K/G caps, signer quotas, byte budget, the always-on-archiver mode and the miss-path ask) with DoS-probe unit tests; the shared ESP32 app keeps the need-to-know ring. Always-on is a LOCAL budget setting in both (`index_always_on` on a station, Always on in the app), never announced: each side reads a peer's depth off `count:` and `uptime:` instead, and both stopped airing and parsing `serve:archive,super` in 2026-09 |
 | Section 12.12 reaching a callsign from anywhere | **implemented and bench-validated**: an internet sender on a foreign network reached a WiFi-less BLE-only pocket through deposit, gossip, forward and release-on-hearing, with signatures intact at every hop |
-| Section 13.0.3 the names keeper (`<callsign>.xprs.dev`) | **implemented** on the server edition (`core/lib/src/services/names/`): the challenge and the signed `t:service dial: k: m:` claim over `/api/names`, the source-address rule, the six-month lock per label, the rate limits, reserved labels, deSEC as the zone's API and the CAA record; the station client claims once per address family over a connection of that family and the public-name service tests and certifies the name. Not on the ESP32 (no public address of its own) |
+| Section 13.0.3 the names keeper (`<callsign>.xprs.dev`) | **implemented** on the server edition (`core/lib/src/services/names/`): the challenge and the signed `t:service dial: k: m:` claim over `/api/names`, the source-address rule, the keeper's signed ping to the claimant's port 4242 and the `dial:` it enables, the six-month lock per label, the rate limits, reserved labels, deSEC as the zone's API and the CAA record; the station client claims once per address family over a connection of that family and the public-name service tests and certifies the name. Not on the ESP32 (no public address of its own) |
 | Section 12.12.1 constrained internet transports (directed replies, directed asks, deposit, sender-parks-own-mail) | **implemented** on the Flutter side; specified after being proven necessary on public hubs |
 | Section 12.10.2 the poll adapts to what it finds (per-archiver interval, the quiet ladder, the peer's floor, 429 as authority) | **implemented** on the Flutter side, with the ladder as pure functions under unit test; bench-measured 600s down to the 15s floor under load and back up to the ceiling when the room went quiet |
 | Section 11.2.1 a continuation must make progress | specified in this revision after both halves failed on the bench; the asker's half (a stalled resume is not news) is **implemented** on the Flutter side, the responder's `until:` half is not yet |
