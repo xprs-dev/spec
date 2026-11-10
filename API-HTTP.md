@@ -109,9 +109,11 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   (`/api/xprs/file/<ref>`, below): `{"get": true, "put": true, "max": 2097152}`,
   `max` the largest it takes or hands out through this API, in bytes. A
   station without it serves none, and the page offers no upload there.
-- `page.gallery: true` says the station has the storage for photographs (a
-  computer, a board with a memory card) and hosts `gallery` rooms (below). A
-  board on its own flash leaves it out, and the page offers no Gallery there.
+- `page.storage: true` says the station has the storage for collections (a
+  computer, a board with a memory card) and hosts `gallery`, `music` and
+  `library` rooms (below). `page.gallery: true` is the same, its first name.
+  A board on its own flash leaves both out, and the page shows the Gallery,
+  Music and Library disabled there.
 
 ### GET /api/xprs/history
 
@@ -437,8 +439,9 @@ the administrator).
 ```
 
 `kind` is `chat` (the default: a conversation), `forum` (topics and
-comments, XPRS.md 18.5, with the conversation beside them) or `gallery` (a
-category of photographs: events, each holding pictures, below). `shared` says
+comments, XPRS.md 18.5, with the conversation beside them), or a collection:
+`gallery` (photographs and films), `music` (albums of tracks) or `library`
+(shelves of any files), below. `shared` says
 whether other stations may hold a copy (below); a room this station mirrors
 from another carries `owner` (that station's callsign) instead, and
 `mirrored: true`.
@@ -450,8 +453,8 @@ the asker would be taken. A moderator or the administrator also gets `members`,
 
 `POST /api/rooms` is the administrator's (JSON, `session` required):
 
-- `create` with `name`, optional `about`, `kind` (`chat`, `forum` or
-  `gallery`, default chat), `visibility` (`public` or `private`, default public) and `posting`
+- `create` with `name`, optional `about`, `kind` (`chat`, `forum`,
+  `gallery`, `music` or `library`, default chat), `visibility` (`public` or `private`, default public) and `posting`
   (`members` or `anyone`; a private room is always `members`). The station
   makes the group's key and offers the administrator `role:mod`, which their
   page accepts. The answer names the new room in `room`.
@@ -526,6 +529,14 @@ room lists the posts alone. Removal and sending away are the room's as above;
 a moderator's `r:<id> remove:message` names an identifier, so it takes a
 topic or a comment down as it takes a message.
 
+**A collection room** (`gallery`, `music`, `library`) is a category of
+photographs and films, of music, or of any files, created by the
+administrator like any room. The three take the same packets under the same
+rules; only the page shows them differently. The words below say a gallery's
+event and picture; a music room's album and track, and a library's shelf and
+file, are the same packets (a track or a file has no preview: its message
+carries no `file:`, and its `t:file` names the file).
+
 **A gallery room** is a category of photographs, created by the
 administrator like any room. Inside it, only its moderators and the
 administrator post; everyone who may read it may like. Nothing in it is a new
@@ -545,7 +556,12 @@ word:
   page's (the room's history carries them).
 - Removal is the room's as above: `r:<id> remove:message` by a moderator.
 
-Any other packet in a gallery room is refused with 403.
+Any other packet in a collection room is refused with 403.
+
+**The station's own key is its operator.** A session proved with the
+station's own callsign (its key never leaves the station; whoever holds it
+runs the station) counts as the administrator and as staff everywhere above,
+beside the administrator who claimed it.
 
 ### GET /api/log
 
