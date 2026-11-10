@@ -597,7 +597,7 @@ they follow this document. Current extras:
 | GET /api/session, POST /api/session | yes (core `WebChatApi`) | yes (`common/xprs_webchat`) | a signed nonce; the page proves its key to read its mail and to administer or moderate |
 | GET/POST /api/admin | yes (share server and server edition, core `WebChatApi`) | yes (`common/xprs_webchat`, `xapi_wc.c`) | the page offers it where `page.admin` says so |
 | GET/POST /api/xprs/file/{ref} | yes (core `WebChatApi`, both hosts) | yes (`xprs_api/xapi_wc.c`; 96 kB a file on the board's own flash, 2 MB with a card) | the page offers images where `file` says so, and shrinks a picture to `file.max` |
-| GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | yes (`common/xprs_webchat`) | the page offers it where `page.rooms` says so; `kind`, `share`, `mirror` and `topics` are specified and not implemented by either engine |
+| GET/POST /api/rooms | yes (server edition; the share server once it hands the core its keys) | yes (`common/xprs_webchat`) | the page offers it where `page.rooms` says so, and the Gallery where `page.gallery` does; both engines implement `kind` (chat, forum, gallery) and `topics`; the board holds no split post (`n:`) and has no `mesh` kind; `share` and `mirror` are the server edition's |
 
 **One page, several engines.** The web chat page is the same file on every
 platform; a phone, a server or a board is an engine behind this API. Two
