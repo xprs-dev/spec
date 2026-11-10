@@ -563,6 +563,58 @@ station's own callsign (its key never leaves the station; whoever holds it
 runs the station) counts as the administrator and as staff everywhere above,
 beside the administrator who claimed it.
 
+## The same API over a Reticulum link
+
+A station answers its whole visitor API over Reticulum too, so a browser
+anywhere reaches a station that has no address of its own on the internet
+(portal/docs/plan-browser-reticulum.md). Nothing about the API differs but
+the transport.
+
+**The link.** The client opens a Reticulum link to the station's `xprs.wapp`
+destination and sends requests (RNS `Link.request`: `msgpack([time,
+path_hash, data])`, a Resource when it does not fit a packet; the response
+`msgpack([request_id, data])` likewise).
+
+**`/xprs/api`** carries one API call. Request data, a map: `m` method, `p`
+path (`/api/...`), `q` query (a string map), `b` body (bytes or a string).
+Response data: `s` status, `t` content type, `b` body (bytes), `h` headers
+(when the HTTP answer would carry any). A visitor over a link is never on the
+station's own network: what only a local visitor may do (the admin claim, a
+WiFi change while online) is refused to it as to any visitor from the
+internet.
+
+**`/xprs/prove`** lets the client check it reached the station it asked for.
+Request data: a nonce (8 to 64 characters of `A-Za-z0-9_-`). Response: `session`,
+a `t:session` signed by the station whose `m:` is the link id in hex, a dot
+and the nonce; and `identity`, the station's latest signed `t:identity` (its
+`k:`). The client checks that the callsign derives from `k:`, that both
+signatures verify with it, and that `m:` names its own link and nonce: only
+the holder of the station's key can say that, so whatever carried the link
+cannot stand in for the station.
+
+### A gateway: Reticulum for browsers
+
+A server station may be a gateway: at `/rns` on its web server (wss:// on its
+HTTPS port) it upgrades to a WebSocket. A binary message is one Reticulum
+packet each way, without HDLC framing; the browser is a client of the
+server's Reticulum node that receives no announce flood, only its links'
+packets and answers to its own path requests. A text message is a JSON
+control frame:
+
+- `{"op":"hello"}` answers `{"op":"gateway","station":"<callsign>"}`.
+- `{"op":"resolve","call":"<callsign>"}` answers `{"op":"resolved","call",
+  "rns","identity","beacon"}`: the station's Reticulum public key (64 bytes
+  in hex) when the gateway has heard it on the `xprs.wapp` lane, and the
+  latest signed `t:identity` and `lx:` beacon it holds of it (either may be
+  null). For a station elsewhere the gateway asks for its path first and
+  answers once it holds it (up to 12 s), so the client's own path request is
+  then answered; for the gateway's own station it also sends the client a
+  fresh announce of it.
+
+What `resolve` says is a hint: the client trusts the station only after
+`/xprs/prove`. A gateway limits each client (frames and bytes a minute,
+clients at once).
+
 ### GET /api/log
 
 The station's own log, machine readable, newest first.
