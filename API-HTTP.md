@@ -324,6 +324,10 @@ this way, and a reader on this API fetches them here.
 the bytes are not, and a visitor on this API proves nothing), 413 when it is
 larger than `file.max`, and 400 for a value that is not a reference.
 
+`GET` answers `Range: bytes=...` with 206 and `Content-Range` (a film
+seeks), and every file answer carries `Accept-Ranges: bytes`; a station
+streams a file, it does not hold it whole.
+
 `POST` stores the request body (raw bytes, any `Content-Type`) under the
 reference, and only when the bytes hash to it:
 
@@ -332,11 +336,15 @@ reference, and only when the bytes hash to it:
 ```
 
 400 when the bytes do not match the reference or there are none, 413 past
-`file.max`, 429 past the same per-visitor rate as `/api/xprs/send`. What is
+`file.max` (or past the free storage), 429 past the same per-visitor rate as `/api/xprs/send`. What is
 stored is a stranger's deposit (XPRS.md 12.11): the station may evict it
 under its own storage policy. `?preview=1` says the file is a picture's preview (XPRS.md
 7.7.7); a station that keeps files in folders keeps those in `.thumbnails/`
-beside the originals, and serves both under their references alike. Storing a file airs nothing; whoever wants the
+beside the originals, and serves both under their references alike. `?session=<token>` of the station's administrator, a moderator, or a
+moderator of a room it hosts makes the file the station's own (a gallery's
+photographs and films): kept, never evicted, and limited only by the storage,
+not by `file.max`, which stays the limit for everyone else. The body is
+streamed into storage and checked as it arrives; nothing that size is held. Storing a file airs nothing; whoever wants the
 bytes asks for them by the reference (XPRS.md 8.1, 11.2).
 
 ### GET /api/admin, POST /api/admin
@@ -526,7 +534,7 @@ word:
 - **An event** (a folder of pictures) is a `t:blog` with `title:` (the event's
   name) and an optional `m:` (what it was), as a forum topic opens. The room's
   index, `GET /api/rooms?topics=<call>`, lists the events.
-- **A picture** is a `t:message` to the room with `r:<event id>`, carrying the
+- **A picture or a film** is a `t:message` to the room with `r:<event id>`, carrying the
   small preview in `file:`, and its companion `t:file r:<that message's id>`
   names the original with `size:` and `name:` (XPRS.md 7.7.7). Both files are
   posted to `/api/xprs/file/<ref>` first. `GET /api/xprs/history?room=<call>&root=<event id>`
