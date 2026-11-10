@@ -81,7 +81,7 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   implements, so a client feature-detects with one request.
 - `station` is the station's own callsign, which the web chat shows beside its
   title. A station that leaves it out is asked `/api/status` (`callsign`).
-- `page` says what the web chat page may offer here (the webchat repo's
+- `page` says what the web chat page may offer here (the portal repo's
   README): `tabs`, `session` (a visitor can prove their key, `/api/session`),
   `mailbox` (the station offers to hold a visitor's mail and takes their
   signed `t:mailbox` and `t:receipt` through `/api/xprs/send`, below),
@@ -109,6 +109,9 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   (`/api/xprs/file/<ref>`, below): `{"get": true, "put": true, "max": 2097152}`,
   `max` the largest it takes or hands out through this API, in bytes. A
   station without it serves none, and the page offers no upload there.
+- `page.gallery: true` says the station has the storage for photographs (a
+  computer, a board with a memory card) and hosts `gallery` rooms (below). A
+  board on its own flash leaves it out, and the page offers no Gallery there.
 
 ### GET /api/xprs/history
 
@@ -331,14 +334,16 @@ reference, and only when the bytes hash to it:
 400 when the bytes do not match the reference or there are none, 413 past
 `file.max`, 429 past the same per-visitor rate as `/api/xprs/send`. What is
 stored is a stranger's deposit (XPRS.md 12.11): the station may evict it
-under its own storage policy. Storing a file airs nothing; whoever wants the
+under its own storage policy. `?preview=1` says the file is a picture's preview (XPRS.md
+7.7.7); a station that keeps files in folders keeps those in `.thumbnails/`
+beside the originals, and serves both under their references alike. Storing a file airs nothing; whoever wants the
 bytes asks for them by the reference (XPRS.md 8.1, 11.2).
 
 ### GET /api/admin, POST /api/admin
 
 The station's administrator and the settings it holds for visitors. The
 administrator is a visitor who proved their key with a session (`/api/session`,
-the webchat repo's README), so the station never holds a password; it keeps the
+the portal repo's README), so the station never holds a password; it keeps the
 callsign and the key it was claimed with, and a session for that callsign
 signed by another key is not the administrator.
 
@@ -423,8 +428,9 @@ the administrator).
   "shared": false, "role": "member", "can_post": true } ] }
 ```
 
-`kind` is `chat` (the default: a conversation) or `forum` (topics and
-comments, XPRS.md 18.5, with the conversation beside them). `shared` says
+`kind` is `chat` (the default: a conversation), `forum` (topics and
+comments, XPRS.md 18.5, with the conversation beside them) or `gallery` (a
+category of photographs: events, each holding pictures, below). `shared` says
 whether other stations may hold a copy (below); a room this station mirrors
 from another carries `owner` (that station's callsign) instead, and
 `mirrored: true`.
@@ -436,8 +442,8 @@ the asker would be taken. A moderator or the administrator also gets `members`,
 
 `POST /api/rooms` is the administrator's (JSON, `session` required):
 
-- `create` with `name`, optional `about`, `kind` (`chat` or `forum`, default
-  chat), `visibility` (`public` or `private`, default public) and `posting`
+- `create` with `name`, optional `about`, `kind` (`chat`, `forum` or
+  `gallery`, default chat), `visibility` (`public` or `private`, default public) and `posting`
   (`members` or `anyone`; a private room is always `members`). The station
   makes the group's key and offers the administrator `role:mod`, which their
   page accepts. The answer names the new room in `room`.
@@ -512,6 +518,27 @@ room lists the posts alone. Removal and sending away are the room's as above;
 a moderator's `r:<id> remove:message` names an identifier, so it takes a
 topic or a comment down as it takes a message.
 
+**A gallery room** is a category of photographs, created by the
+administrator like any room. Inside it, only its moderators and the
+administrator post; everyone who may read it may like. Nothing in it is a new
+word:
+
+- **An event** (a folder of pictures) is a `t:blog` with `title:` (the event's
+  name) and an optional `m:` (what it was), as a forum topic opens. The room's
+  index, `GET /api/rooms?topics=<call>`, lists the events.
+- **A picture** is a `t:message` to the room with `r:<event id>`, carrying the
+  small preview in `file:`, and its companion `t:file r:<that message's id>`
+  names the original with `size:` and `name:` (XPRS.md 7.7.7). Both files are
+  posted to `/api/xprs/file/<ref>` first. `GET /api/xprs/history?room=<call>&root=<event id>`
+  is the event's pictures.
+- **A like** is `t:reaction r:<id> add:like` (XPRS.md 8), on a picture's
+  message or on an event's post, from any visitor who may read the room and
+  has proved their key; it is answered as a message is. Counting them is the
+  page's (the room's history carries them).
+- Removal is the room's as above: `r:<id> remove:message` by a moderator.
+
+Any other packet in a gallery room is refused with 403.
+
 ### GET /api/log
 
 The station's own log, machine readable, newest first.
@@ -576,7 +603,7 @@ they follow this document. Current extras:
 platform; a phone, a server or a board is an engine behind this API. Two
 implementations exist because the platforms do, the Dart core's `WebChatApi`
 and the ESP32's `xwc` (plain C), and what keeps them one API is the
-conformance suite in the webchat repo, `contract/conformance.py`: it drives
+conformance suite in the portal repo, `contract/conformance.py`: it drives
 every endpoint above from outside with keys of its own, signing with the
 page's crypto, and is run against each engine. A rule added to one engine is
 added to the suite first, and the other engine fails until it has it.
