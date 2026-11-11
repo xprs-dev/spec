@@ -583,6 +583,13 @@ station's own network: what only a local visitor may do (the admin claim, a
 WiFi change while online) is refused to it as to any visitor from the
 internet.
 
+**What fits.** A station answers over a link from the memory it has. One
+without the room for a whole listing sends the newest items that fit, fewer
+than `limit` asked for, exactly as `limit` itself cuts a listing short: the
+client asks again with `until` for what is older. An answer that cannot be
+cut and does not fit is `413`. A station may also answer the calls of a link
+one after another rather than at once.
+
 **`/xprs/prove`** lets the client check it reached the station it asked for.
 Request data: a nonce (8 to 64 characters of `A-Za-z0-9_-`). Response: `session`,
 a `t:session` signed by the station whose `m:` is the link id in hex, a dot
