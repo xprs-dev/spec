@@ -1687,6 +1687,20 @@ bytes, else in a packet of its own.
 t:identity f:X3PTZM ts:2026-11-05_17:00:00 nick:XPRS-server file:- url:https://178-202-105-29.nip.io/ sig:<60 characters> m:-
 ```
 
+**`pos:` with `acc:` says where the station is**, as section 15.1 has them: the
+decimals are the precision claimed and `acc:` the distance in metres it may be
+from that point. It is a decoration field like `url:`: kept per field, newest
+wins, `pos:-` withdraws it, and when the decoration does not fit one packet it
+travels with `url:`. A station that is not a moving thing says it here rather
+than in every beacon, so a map or a directory of stations can place it from the
+identities a gateway keeps. A station that does not want to give a spot can give
+a region: a town's centre to two decimals, or a country's centre with no decimals
+and the country's radius in `acc:`.
+
+```
+t:identity f:X3VGAZ ts:2026-11-14_09:00:00 nick:bench pos:40,-8 acc:171000 sig:<60 characters>
+```
+
 The split turns out to be the right shape anyway. The key binding is small and
 must be repeated often, because a receiver that has never heard it can verify
 nothing (section 20.1). The decoration is larger and changes once a year, so it
