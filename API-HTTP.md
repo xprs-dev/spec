@@ -319,12 +319,24 @@ post, a page or a feature. A formatted text (XPRS.md 4.11) names its images
 this way, and a reader on this API fetches them here.
 
 `GET` answers the bytes, `Content-Type` from the type, with
-`Cache-Control: public, max-age=31536000, immutable` and the hex digest as
-`ETag` (the bytes under a reference never change). It answers 404
-`{"ok": false, "error": "not held"}` when the station does not hold them,
-403 when the file's audience is not public (XPRS.md 11.2: the hash is public,
-the bytes are not, and a visitor on this API proves nothing), 413 when it is
-larger than `file.max`, and 400 for a value that is not a reference.
+`Cache-Control: public, max-age=31536000, immutable` (`private` for a file
+not open to everyone) and the hex digest as `ETag` (the bytes under a
+reference never change). It answers 404 `{"ok": false, "error": "not held"}`
+when the station does not hold them, 403 `not a public file` when the
+visitor may not have them, 413 when it is larger than `file.max`, and 400 for
+a value that is not a reference.
+
+Who may have the bytes is the reach of the words that carried them (XPRS.md
+11.2: the hash is public, the bytes are not). A file posted in a hosted room
+(a chat room's picture, a Gallery photo, a Music track, a Library file: the
+`file:` of any packet the room took, field or text) is that room's: served
+to whoever may read the room, decided at each ask, so a room made private
+closes its old files too, and the newest post of a file decides. The visitor
+proves who they are with `?session=<token>`, the same token as everywhere on
+this API; the page adds it to every file address it draws. A file posted in
+no room is open to anyone. A private file outside the hosted rooms (a closed
+group's, a pair's) goes to the callsign a session proves, as a signed
+`cmd:file` would.
 
 `GET` answers `Range: bytes=...` with 206 and `Content-Range` (a film
 seeks), and every file answer carries `Accept-Ranges: bytes`; a station
@@ -340,7 +352,11 @@ reference, and only when the bytes hash to it:
 400 when the bytes do not match the reference or there are none, 413 past
 `file.max` (or past the free storage), 429 past the same per-visitor rate as `/api/xprs/send`. What is
 stored is a stranger's deposit (XPRS.md 12.11): the station may evict it
-under its own storage policy. `?preview=1` says the file is a picture's preview (XPRS.md
+under its own storage policy. `?room=<call>` names the hosted room the upload is for, with the uploader's
+`?session=`: the file is that room's from the moment it is stored, before the
+post that names it (a private picture is never open in between), unless a
+post already bound it. 403 `not a room you read` when the session may not read
+that room. `?preview=1` says the file is a picture's preview (XPRS.md
 7.7.7); a station that keeps files in folders keeps those in `.thumbnails/`
 beside the originals, and serves both under their references alike. `?session=<token>` of the station's administrator, a moderator, or a
 moderator of a room it hosts makes the file the station's own (a gallery's
