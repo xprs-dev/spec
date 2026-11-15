@@ -595,6 +595,8 @@ path_hash, data])`, a Resource when it does not fit a packet; the response
 
 **`/xprs/api`** carries one API call. Request data, a map: `m` method, `p`
 path (`/api/...`), `q` query (a string map), `b` body (bytes or a string).
+A request may carry `h`, its headers (a string map), when the HTTP call would
+carry any that matter: `Range` on a file is the one a station must read.
 Response data: `s` status, `t` content type, `b` body (bytes), `h` headers
 (when the HTTP answer would carry any). A visitor over a link is never on the
 station's own network: what only a local visitor may do (the admin claim, a
@@ -607,6 +609,18 @@ than `limit` asked for, exactly as `limit` itself cuts a listing short: the
 client asks again with `until` for what is older. An answer that cannot be
 cut and does not fit is `413`. A station may also answer the calls of a link
 one after another rather than at once.
+
+**A file larger than one answer.** `GET /api/xprs/file/{ref}` with
+`h: {"Range": "bytes=<first>-<last>"}` is answered `206` with that part and
+`Content-Range: bytes <first>-<last>/<size>`, exactly as over HTTP, read from
+the store without holding the rest; the audience rule is the whole file's. A
+station sends at most 256 kB in one part (fewer when that is what fits) and
+says in `Content-Range` what it sent: the client asks for the next part from
+there, and from where it stopped when a link dropped. `416` past the end. A
+file without `Range` that is larger than `file.max` stays `413`; a station
+that does not cut answers a ranged ask the same way it answers a whole one,
+so a client that gets `200` has the whole file and one that gets `413`
+cannot have it over a link from that station.
 
 **`/xprs/prove`** lets the client check it reached the station it asked for.
 Request data: a nonce (8 to 64 characters of `A-Za-z0-9_-`). Response: `session`,
