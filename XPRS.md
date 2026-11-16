@@ -3672,13 +3672,19 @@ keeps the meaning it has everywhere else in this document, when the sender
 expects the condition to end, and `revoke:` keeps the meaning it has with or
 without it.
 
-**A moderator may revoke and hide. Only the admin may appoint.** Two tiers is
-the whole hierarchy. `hide:message` asks clients not to display the packet named
+**A moderator may grant membership, revoke and hide. Only the admin may
+appoint.** A moderator's `grant:` makes an ordinary member, never a moderator
+and never a listing (`role:sub`), and never touches somebody who already holds
+a place; appointing moderators and listing folders are the admin's. Two tiers
+is the whole hierarchy, and in a group too small to have moderators the admin
+does all of it. `hide:message` asks clients not to display the packet named
 in `r:`; it cannot unsend anything, because nothing on a radio can.
 
 There is no application packet. **Asking to join is an ordinary message to the
 group**, which needs no new type and leaves no permanent signed record that a
-person asked and was refused.
+person asked and was refused. Members' clients do not show it (the author is
+not on the roster); the admin's and the moderators' show it as a request, and
+accepting it is a `grant:`, which the person then accepts (10.3.1).
 
 ### 10.3.1 Nobody is a member without saying so
 
@@ -3873,7 +3879,15 @@ boundary: anyone can still transmit to `X5A3F2` and everyone in range still
 hears it. Design rule 6 also stands, every packet remains fully readable with
 no prior state, and the roster changes only what a client chooses to **show**.
 
-### 10.7.1 The reading key
+### 10.7.1 Public and private, and the reading key
+
+A closed group is **public** unless its admin makes it private: anyone may
+read it, only its members post, and anybody else asks to join (10.3). Its
+posts are ordinary signed `m:` packets, and a station that keeps them serves
+them to whoever asks for the group (`cmd:history only:<X5>`).
+
+A **private** group's words are sealed, and only its members read them. The
+rest of this section is how.
 
 `x:` seals to the addressee's key (section 6.2), and a group's own key is its
 authority (section 10.1): whoever holds it grants, revokes and appoints. So a
@@ -3891,7 +3905,13 @@ t:message f:X5A3F2 d:X1RD89 ts:2026-08-08_14:40:00 x:<128 characters> sig:<60 ch
 
 Sealed inside is `nsec:` and the reading key. The unseal against the group's
 own key is what proves the group said it; a reading key that arrives any other
-way is not taken. A member seals a post with `x:` to the reading key's public
+way is not taken. A public group sends its members `nsec:-` the same way,
+the field's "taken back" form of section 6.3.2: there is no reading key, the
+words travel in the clear. A member's client holds a post to a group until
+it has heard one or the other, so a private group's words never leave in the
+clear by a race with the key. Turning a group private mints a key and hands
+it out; turning it public again sends `nsec:-`; the newest word a member
+received stands. A member seals a post with `x:` to the reading key's public
 half instead of the group's, and every holder opens it with the private half:
 
 ```
