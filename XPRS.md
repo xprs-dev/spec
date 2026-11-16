@@ -3873,6 +3873,42 @@ boundary: anyone can still transmit to `X5A3F2` and everyone in range still
 hears it. Design rule 6 also stands, every packet remains fully readable with
 no prior state, and the roster changes only what a client chooses to **show**.
 
+### 10.7.1 The reading key
+
+`x:` seals to the addressee's key (section 6.2), and a group's own key is its
+authority (section 10.1): whoever holds it grants, revokes and appoints. So a
+group whose words are private does not hand its key to its members. It has a
+second keypair, its **reading key**, that does one thing: seal and open what is
+said to the group.
+
+The admin mints it and gives it to each member as a sealed message from the
+group, signed with the group's key, carrying the private half as the `nsec:`
+line of section 11.10:
+
+```
+t:message f:X5A3F2 d:X1RD89 ts:2026-08-08_14:40:00 x:<128 characters> sig:<60 characters>
+```
+
+Sealed inside is `nsec:` and the reading key. The unseal against the group's
+own key is what proves the group said it; a reading key that arrives any other
+way is not taken. A member seals a post with `x:` to the reading key's public
+half instead of the group's, and every holder opens it with the private half:
+
+```
+t:message f:X1RD89 d:X5A3F2 ts:2026-08-08_14:41:00 x:<sealed> sig:<60 characters>
+```
+
+**A departure makes a new one.** When a member is revoked or leaves, the admin
+mints a new reading key and gives it to the members who remain, and what is
+said from then on is closed to whoever went. The old keys are kept, newest
+tried first, so what was said before stays readable to those who could read it,
+and a newcomer is given the keys of the history they join (eight at most).
+
+Nothing else moves. The roster, the acts, the group's `t:identity` and its
+reactions stay as public as this section says they must be; only the words go
+behind the reading key. A client that holds no reading key sees that a sealed
+post was made to the group, and by whom, as it would for any `x:`.
+
 ### 10.8 Bootstrap, and not becoming a weapon
 
 Any member may rebroadcast the grants it holds. They are signed by the group, so
