@@ -5276,6 +5276,21 @@ everything it hears, carries mail, bridges bearers, and announces
 Archivers differ in what they answer, never in what they are, and a reader
 learns which is which by asking, so the format needs no word to rank them.
 
+**The archiver is a station, so it has a station's name.** A device used by a
+person holds its own key and callsign, `X3` (section 3), owned by that person's
+`X1` (section 11.9). The archive is the device's, not the person's: the device
+answers `cmd:history`, `cmd:file` and `q:mail` addressed to its `X3`, signs
+those answers with the device key, and carries `serve:`, `dial:`, `room:` and
+`mail:` on the `X3`'s own observation. A `t:mailbox hold:` names the `X3`, and
+so does the directory announcement (section 12.9.2). The person's `X1` keeps
+what is personal: identity, posts, messages, and the mail held *for* the
+person. The device's `X3` observation carries the same `lx:` as the person's
+beacon, because one install has one LXMF address, and a hearer keeps the
+address under both names. A device that changes from answering as the `X1` to
+answering as the `X3` SHOULD keep answering asks addressed to the `X1` until
+the stations that chose it have moved; nothing on the wire maps one to the
+other. A headless station whose only identity is an `X3` is already this case.
+
 **The operator sets the rules, like a NOSTR relay operator.** The owner decides
 what it keeps and for whom: their own traffic, the callsigns they follow,
 stations heard nearby, or anyone, under a quota. Silence is not consent: a
