@@ -3585,7 +3585,9 @@ t:identity f:X5A3F2 ts:2026-08-08_14:26:40 k:npub1qz3n7fu9j9uenmyva7ha6x9eqwymyt
 
 187 bytes. It is self-signed, which proves possession of the group's private key
 (section 7.3), and `nick:` gives the group a readable name that is shown only
-when the signature verifies (section 6.3.1). A group needs no announcement
+when the signature verifies (section 6.3.1). A group's name is usually words,
+so in a group's `nick:` an `_` stands for a space: `nick:Book_club` is shown as
+"Book club", while `-` stays a dash. A person's `nick:` is shown as sent. A group needs no announcement
 packet of its own, no registry and no creation ceremony. It exists once somebody
 generates a key and says so.
 
@@ -3679,6 +3681,13 @@ a place; appointing moderators and listing folders are the admin's. Two tiers
 is the whole hierarchy, and in a group too small to have moderators the admin
 does all of it. `hide:message` asks clients not to display the packet named
 in `r:`; it cannot unsend anything, because nothing on a radio can.
+
+**The admin's grant to somebody who already holds a place changes their role,
+never their place.** `role:mod` to a member is an offer like any other: it waits
+on `accept:mod` (10.3.1), and until then they remain a member and keep posting.
+A plain `grant:` to a moderator takes the role away at once and needs no
+acceptance, for the same reason a removal needs none. A plain `grant:` to a
+member changes nothing.
 
 There is no application packet. **Asking to join is an ordinary message to the
 group**, which needs no new type and leaves no permanent signed record that a
