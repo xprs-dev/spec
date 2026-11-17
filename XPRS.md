@@ -5652,6 +5652,17 @@ messages.
   re-airs mail the recipient already took, at every sighting after, because the
   archive survived the reboot and the memory of the receipt did not. A holder
   that keeps mail across a restart MUST keep the receipts across it too.
+- **A held ask is handed over once.** A `cmd:history` or `cmd:file` left with a
+  holder (section 12.12.1) gets no receipt: its answer is a `t:result` to the
+  asker, which the holder does not hear. So the holder releases it on the first
+  delivery that succeeded and keeps no copy. An asker still waiting asks again
+  (section 12.10.2), and that new ask is the one that waits. Of several held
+  asks from one station to one station about the same question (the same
+  `cmd:`, `kind:`, `only:` and `file:`), only the newest is still a question
+  (section 12.9.4); the holder drops the older ones unsent. A holder that keeps
+  an ask until it receives a receipt re-airs it for as long as it keeps mail:
+  measured on a live archiver as 3,500 re-airs an hour, almost all of them the
+  same few asks, passed back and forth between archivers.
 - **The recipient may ask instead of waiting.** `q:mail` (section 9.12.3) says
   how much is held without moving any of it, and the holder's `mail:` count
   (section 15.6.5) says the same to everyone in earshot without being asked.
