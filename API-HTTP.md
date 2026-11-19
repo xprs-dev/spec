@@ -467,7 +467,16 @@ from another carries `owner` (that station's callsign) instead, and
 `role` is the asker's place in the room (`admin`, `mod`, `member`, `invited`
 with the `offer` to accept, or `none`); `can_post` says whether a message from
 the asker would be taken. `state` is `closed` while the room takes new posts
-from its moderators only (XPRS.md 10.4.2), else `open`. A moderator or the administrator also gets `members`,
+from its moderators only (XPRS.md 10.4.2), else `open`.
+
+Asking to join (XPRS.md 10.3): in a public room where only members post, a
+`t:message` from somebody who is no member is taken as a request: filed,
+answered `"request": true`, at most once an hour per person and room (else
+429). In the room's history such a row (by an author who was no member at its
+`ts:`) is served only to the room's moderators, the administrator and its own
+author, marked `"request": true`; members never see it. Staff answer with a
+grant: `add` here, or a moderator's own signed `grant:` (a room moderator may
+grant membership, never appoint). A moderator or the administrator also gets `members`,
 `moderators` and `invited`.
 
 `POST /api/rooms` is the administrator's (JSON, `session` required):
