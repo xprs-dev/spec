@@ -170,6 +170,22 @@ operator's own LAN show everything it held, and both reference stations did;
 a hotspot full of strangers is not the operator's LAN, and the ESP32 station
 now applies the rule like the Dart core.
 
+### GET /api/xprs/groups
+
+Public groups ranked across this station's archivers (XPRS.md 12.9.7), where
+`/api/services` says `page.groups`: `?by=active` (the default: posts this week
+and the last), `members` or `growing` (joins in the last four weeks); an open
+group ranks under `active` only.
+
+```json
+{ "ok": true, "by": "active", "sources": 2, "rows": [ { "g": "X5A3F2",
+  "name": "Reading circle", "open": false, "members": 4, "posts": 7,
+  "posters": 3, "joins": 1 } ] }
+```
+
+Counts are estimates (about 13%). `sources` is how many archivers' indexes
+went into it. Fifty rows at most.
+
 ### GET /api/xprs/mail
 
 Store-and-forward: what the station holds FOR a callsign.
