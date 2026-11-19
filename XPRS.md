@@ -6197,6 +6197,111 @@ already carry (12.6) and a station's interests are not disclosed keystroke by
 keystroke. And a station never builds Search on what it heard alone: that is
 the failure this section exists to prevent.
 
+### 12.9.7 Ranking public groups: the groups index
+
+A person looking for somewhere to talk wants the busy groups first, and the
+groups worth finding are mostly ones their device never heard. 12.9.6 gives
+the names; this section gives the numbers, so a client can rank public groups
+by how active they are, how many belong, and how fast they grow. Every number
+comes from archivers, because only they hold enough of the traffic, and the
+numbers are built so that what several archivers report can be put together
+without counting anything twice and without any of them knowing the date.
+
+**Which groups.** Public ones only: an open group (section 7.3), and a closed
+group whose newest post the archiver holds is in the clear (section 10.7.1).
+A closed group whose newest post is sealed is private and is never listed,
+and one the archiver has no post of yet is not listed, because nothing says
+which it is. An archiver lists only the groups it keeps (section 10.9.1).
+
+**Weeks, not dates.** A post is counted in the week its own `ts:` falls in:
+the number of whole weeks (604 800 seconds) since 1970-01-01T00:00:00Z, so
+`2026-11-19` is week 2968. The archiver never needs to know today's date,
+which a station without a clock does not: it keeps, for each group, the four
+newest weeks it has counted and drops an older one when a fifth begins. An
+archiver that does keep time also refuses a post dated more than ten minutes
+ahead of it. The reader, which has a clock, decides which weeks are "this
+week" and "last week", and ignores weeks after its own.
+
+**What is counted, per group and per week**, each as a sketch (below):
+
+- `p`, posts: the identifier (section 5) of every `t:message` to the group
+  the archiver admitted. For a closed group, only a member's post at its
+  `ts:` (section 10.4) in a stretch the group took posts (section 10.4.2).
+- `s`, posters: the callsign (without its `-SSID`) of each of those posts'
+  authors. One person posting a thousand times is one poster, which is what
+  keeps a single voice from ranking a group.
+- `j`, joins, closed groups only: the callsign that signed each `accept:`
+  (section 10.3.1) dated in that week.
+
+And per closed group, once: its **members**, counted from its record as
+section 10.4 reads it (members, moderators and the admin; an invitation is
+not a member), with the `ts:` and identifier of the newest act counted.
+
+**The sketch.** Each count is a HyperLogLog of 64 registers: a fixed 64
+characters that estimate how many distinct things were added, to within about
+13%, whatever the number. For each thing added, take the first eight bytes of
+the SHA-256 of its text (the identifier, or the callsign) as a big-endian
+64-bit number; its top six bits choose the register, and the register keeps
+the largest value of (one plus the number of leading zero bits in the
+remaining 58 bits), at most 59. A register is written as one base64url
+character, `A` for 0 through `_` for 63, in register order. A sketch whose
+registers are all zero is left out.
+
+Two sketches of the same kind combine by keeping, register by register, the
+larger value; the result is the sketch of everything either saw, so a post
+two archivers both hold counts once. The estimate is
+`0.709 × 64² / Σ 2^-r` over the registers `r`; when that is at most 160 and
+some registers are zero, it is `64 × ln(64 / zeros)` instead. A client shows
+it as approximate.
+
+**The file.** A text listing in the 7.7.2 family, one line per group and
+fact, sorted by group:
+
+```
+XGRP1
+LISBOA w 2968 p HCKDGBAA… s DBAAACAB…
+X5A3F2 m 42 2026-11-18_21:14:03 9f3c21
+X5A3F2 w 2967 p … s … j …
+X5A3F2 w 2968 p … s … j …
+```
+
+`m` is the members line: count, the newest act's `ts:`, its identifier. `w`
+is a week: its number, then `p`, `s` and `j` each followed by its 64
+characters, each left out when empty. A line that does not parse is skipped.
+At about 400 bytes per busy group, a thousand public groups are some 400 kB.
+
+**Where it is named.** On a line of the archiver's directory (section 12.9),
+`XGRP1 file:<ref>.xgrp`, which an older reader skips like any line it cannot
+read. So a station finds the index exactly where it already finds the
+directory, and an unchanged index leaves the directory's hash unchanged. An
+archiver rebuilds the index at most every thirty minutes, and only names a
+new one when something in it changed.
+
+**Putting several archivers together.** A reader fetches the index of each
+archiver it chose (section 12.3) and of the always-on ones it knows, and:
+
+- for **members**, keeps the line whose newest act is the newest, and on a
+  tie the larger count: members are computed from signed acts, so two
+  archivers that hold the same acts agree, and the one that saw the latest
+  change is the most complete;
+- for **posts, posters and joins**, combines the sketches of the same group,
+  week and kind, as above.
+
+Never an average and never a sum: archivers each hold part of a group's
+traffic and their parts overlap, and only the combined sketch says how much
+there is in all.
+
+**Ranking.** The reference client ranks by posts in this week and the last,
+ties broken by posters; by members; and by joins in the last four weeks. An
+open group has no members and no joins, so it is ranked by activity only.
+
+**What this is not.** A count is a claim, priced like a directory line: an
+archiver can inflate the groups it lists, and a reader that chose it is the
+one who trusts it (section 12.3). A group's admin can grow its own roster
+with callsigns that cost nothing; posters and joins are reported beside
+members so that a crowd of silent names is visible as one. Nothing is added
+to the wire.
+
 ### 12.10 Two archivers meet
 
 A station that was away has a hole in its archive as wide as its absence, and the
