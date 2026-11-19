@@ -453,7 +453,7 @@ the administrator).
 ```json
 { "ok": true, "rooms": [ { "call": "X5A3F2", "name": "Block C", "about": "residents",
   "kind": "chat", "visibility": "public", "posting": "members",
-  "shared": false, "role": "member", "can_post": true } ] }
+  "shared": false, "state": "open", "role": "member", "can_post": true } ] }
 ```
 
 `kind` is `chat` (the default: a conversation), `forum` (topics and
@@ -466,7 +466,8 @@ from another carries `owner` (that station's callsign) instead, and
 
 `role` is the asker's place in the room (`admin`, `mod`, `member`, `invited`
 with the `offer` to accept, or `none`); `can_post` says whether a message from
-the asker would be taken. A moderator or the administrator also gets `members`,
+the asker would be taken. `state` is `closed` while the room takes new posts
+from its moderators only (XPRS.md 10.4.2), else `open`. A moderator or the administrator also gets `members`,
 `moderators` and `invited`.
 
 `POST /api/rooms` is the administrator's (JSON, `session` required):
@@ -477,7 +478,8 @@ the asker would be taken. A moderator or the administrator also gets `members`,
   makes the group's key and offers the administrator `role:mod`, which their
   page accepts. The answer names the new room in `room`.
 - `update` with `call` and any of `name`, `about`, `kind`, `visibility`,
-  `posting`.
+  `posting`, `state` (`closed` or `open`: the room signs `state:` in its
+  record, XPRS.md 10.4.2).
 - `share` with `call`, `shared` (true or false) and `peers` (callsigns of the
   stations that may hold a copy; required for a private room, optional for a
   public one, where an empty list means any station). The station then
