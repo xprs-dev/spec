@@ -3812,6 +3812,46 @@ A member who is not a moderator is not shown what a moderator's correction
 replaced, only that earlier versions were removed by a moderator; a moderator
 and the admin may see them.
 
+### 10.4.2 Closing a group to new posts
+
+A group, or a folder of one (section 10.2, which is a group), sometimes has
+said what it had to say: last year's event, a finished project, a channel that
+is now only announcements. Its admin or a moderator **closes** it, and opens it
+again, with one more act of authority:
+
+```
+129  t:moderate f:X5A3F2 d:X5A3F2 ts:2026-08-08_16:00:00 state:closed sig:<60 characters>
+127  t:moderate f:X32DVA d:X5A3F2 ts:2026-08-09_09:00:00 state:open sig:<60 characters>
+```
+
+`state:` is the word of section 11.7 and takes two of its values here,
+`closed` and `open`. Nothing new travels: a group is a station (section 10.1),
+and this is the station stating its condition, signed like every other act.
+
+**While a group is closed, only its admin and its moderators post.** A member's
+`t:message` or `t:reaction` to it whose `ts:` falls in a closed stretch is not
+displayed, exactly as a non-member's is not (section 10.7): membership and
+this state together decide display, and nothing else. A member's client does
+not offer to write there, and says why. What was said before the group closed
+stays as it was, and so does who belongs: closing removes nobody, and opening
+needs no new grants.
+
+**The log is read as section 10.4 reads it.** The act counts if its signer was
+the admin or held `role:mod` at its `ts:`; the newest act that counts decides
+the state at any later moment, whoever signed it, and the smaller identifier
+breaks a tie. A group with no such act is open. A moderator's act voided by
+`revoke:` with `since:` is voided with the rest of their record.
+
+**The rules of section 10.7 stand.** Safety traffic is never filtered, and a
+client that cannot verify fails open: it shows the group as open and
+unverified, because a closed group it merely failed to hear about must not
+look like a silent one.
+
+Closing is not privacy and not deletion. A closed public group is still read
+by anyone (section 10.7.1), its history is still served, and a station that
+ignores the state can still transmit to the group's callsign; what a client
+honours is what it shows.
+
 ### 10.5 Expiry, and what a quiet group does
 
 `until:` on a grant is optional, exactly as it is on a mailbox declaration
@@ -7559,7 +7599,7 @@ t:observation f:X1BOA3 pos:38.6902,-9.4012 wave:1.8m seatemp:18.4C type:boat ts:
 | `odometer` | `qty` | distance travelled over the station's service life | distance |
 | `type` | `enum` | what the station is or is riding on, from the set in section 21.2 | |
 | `fw` | `text` | the firmware version this station is running (section 11.8) | |
-| `state` | `enum` | a device's principal condition, from the closed list in section 11.7 | |
+| `state` | `enum` | a device's principal condition, from the closed list in section 11.7; on `t:moderate`, `closed` or `open`: whether a group takes new posts (section 10.4.2) | |
 | `level` | `qty` | how far, when a condition is partial (section 11.7) | proportion |
 | `target` | `qty` | the setpoint a device holds a reading at (section 11.7) | |
 
@@ -9867,7 +9907,7 @@ packet **250 bytes**, on every transport.
 | `lifetime` | `qty` | how long the station has run in total, across every restart | duration |
 | `odometer` | `qty` | distance travelled over the station's service life | distance |
 | `type` | `enum` | what the station is or is riding on, from the set in section 21.2 | |
-| `state` | `enum` | a device's principal condition, from the closed list in section 11.7 | |
+| `state` | `enum` | a device's principal condition, from the closed list in section 11.7; on `t:moderate`, `closed` or `open`: whether a group takes new posts (section 10.4.2) | |
 | `level` | `qty` | how far, when a condition is partial (section 11.7) | proportion |
 | `target` | `qty` | the setpoint a device holds a reading at (section 11.7) | |
 
@@ -10574,7 +10614,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 31, airtime | not implemented as stated here, though the Reticulum side has real cadences (30 s charging, 5 min on battery) and the NOSTR side has stranger-serving budgets |
 | `t:status` | not implemented; the Social wapp has a feed, but it is NOSTR kind-1 notes over the internet and Reticulum rather than XPRS packets (`docs/social.md`) |
 | `mood:` and client theming | not implemented; nothing reads a mood and no client changes appearance for one |
-| `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, and the moderator's `edit:` / `remove:message` of section 10.4.1, judged at the act's moment; the chat wapp's closed groups use it |
+| `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, the moderator's `edit:` / `remove:message` of section 10.4.1, and `state:closed` / `state:open` of section 10.4.2, judged at the act's moment; the chat wapp's closed groups use it |
 | Correcting and withdrawing, sections 7.8 and 10.4.1 | **implemented**: `edit:` and `r:<id> remove:message` for 1:1, closed groups, rooms, Status and Alerts; archivers purge a verified withdrawal and keep a tombstone; the courier releases a carried copy only on a verified one |
 | A station's own rooms, section 10.10 | **implemented** in the core's `WebChatApi` and the web chat: an administrator who proved their key, moderators appointed with `role:mod` and accepting, `remove:message` and `revoke:` [`until:`] signed in the browser, lifting by the station's grant; the boards do not have it yet |
 | Subgroups, `role:sub` nested five levels deep | not implemented; the chat wapp has a sub-room tree, but on NOSTR rooms and with authority inherited down the tree rather than stopping at each key |
