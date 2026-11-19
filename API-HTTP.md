@@ -469,6 +469,15 @@ with the `offer` to accept, or `none`); `can_post` says whether a message from
 the asker would be taken. `state` is `closed` while the room takes new posts
 from its moderators only (XPRS.md 10.4.2), else `open`.
 
+A group by name: `GET /api/xprs/history?room=<GROUP>` with an open group's
+name in capitals (XPRS.md 7.3, e.g. `LISBOA`) or the callsign of a closed group
+this station does not host (`X5…`, section 10) returns the rows addressed to
+it that the station holds. For a closed group the rows are shown as 10.7
+displays them (what members wrote at that moment, less what moderators took
+down; an unverifiable record fails open) and the answer carries
+`group: {state, verified}` and `moderation`. A private group's rows stay
+sealed. Writing to a group is an ordinary signed post with `d:<GROUP>`.
+
 Asking to join (XPRS.md 10.3): in a public room where only members post, a
 `t:message` from somebody who is no member is taken as a request: filed,
 answered `"request": true`, at most once an hour per person and room (else
