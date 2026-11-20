@@ -491,7 +491,12 @@ this station does not host (`X5…`, section 10) returns the rows addressed to
 it that the station holds. For a closed group the rows are shown as 10.7
 displays them (what members wrote at that moment, less what moderators took
 down; an unverifiable record fails open) and the answer carries
-`group: {state, verified}` and `moderation`. A private group's rows stay
+`group: {state, verified, name, role, offer, offer_role}` (the asker's place,
+when a session is given and the station keeps the group's record) and
+`moderation` (`removed`, and `edits`: `{id: text}`, a moderator's correction
+of each publication, 10.4.1; hosted rooms carry `edits` too). A visitor's
+signed `t:moderate` about such a group (an acceptance, a leave, a moderator's
+act) goes through `/api/xprs/send` like a post to it; its record judges it. A private group's rows stay
 sealed. Writing to a group is an ordinary signed post with `d:<GROUP>`.
 
 Asking to join (XPRS.md 10.3): in a public room where only members post, a
