@@ -620,6 +620,8 @@ a message may contain spaces, colons, URLs and any punctuation.
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
 | `sig` | `base85` | signature |
 | `k` | `bech32` | public key, in `t:identity` and `t:challenge`, and on `q:owner`, a claim and a new key's answer (sections 11.9, 11.10) |
+| `idtype` | `label` | on `t:identity`, which kind of identity `data:` holds: `licence`, `email`, `ble`, `meshtastic` and the others of section 6.3.3 |
+| `data` | `text` | on `t:identity`, the identities of that kind, separated by commas, no spaces; `-` withdraws the kind (section 6.3.3) |
 
 ### 4.2 Packet types
 
@@ -1709,6 +1711,78 @@ goes out rarely, which is section 30 applied to this format's own traffic.
 A packet without `k:` still verifies, against the key the receiver already holds
 for that callsign. One from a station whose key is unknown is ignored, exactly
 as the nickname rule above requires.
+
+### 6.3.3 The other identities of the same person
+
+A key is the one thing that identifies a person (section 6.3). Everything else
+they go by is an identity that hangs from it: the callsigns an authority issued
+them, the address of a board they run, their node on another mesh, an e-mail
+address. A person who wants others to know one of these says so in an identity
+packet, with two fields:
+
+| Key | Type | Meaning |
+|---|---|---|
+| `idtype` | `label` | which kind of identity `data:` holds, from the list below |
+| `data` | `text` | the identity itself, or several of that kind separated by commas; no spaces |
+
+```
+144  t:identity f:X1QZ3N ts:2026-11-21_10:00:00 idtype:licence data:CT1ABC,EA/CT1ABC sig:<60 characters>
+171  t:identity f:X1QZ3N ts:2026-11-21_10:00:05 scope:local idtype:ble data:A4:CF:12:0B:7E:31,A4:CF:12:0B:80:02 sig:<60 characters>
+154  t:identity f:X1QZ3N ts:2026-11-21_10:00:10 scope:PT,ES idtype:email data:joao@example.org sig:<60 characters>
+141  t:identity f:X1QZ3N ts:2026-11-21_10:00:15 idtype:meshtastic data:MTA1B2C3D4 sig:<60 characters>
+```
+
+Four rules:
+
+- **One packet, one kind.** A packet states the identities of ONE `idtype`, all
+  of them, separated by commas. Another kind is another packet, with its own
+  `scope:` and its own signature. Kinds are never mixed in a packet.
+- **The newest packet of a kind replaces that kind.** A receiver keeps, per
+  `idtype`, the `data:` of the newest verifiable packet that carried it,
+  exactly as it keeps `nick:` and `file:` (section 6.3.2). A person who adds a
+  second board states both. A set that does not fit the 250 bytes of a packet
+  is cut to the ones that matter most; it is not continued in a second packet,
+  which would replace the first.
+- **`data:-` withdraws the kind**, as `-` clears any decoration field:
+
+```
+139  t:identity f:X1QZ3N ts:2026-11-22_08:00:00 scope:PT,ES idtype:email data:- sig:<60 characters>
+```
+
+- **It is signed, and `scope:` says how far it goes** (section 9.11). A receiver
+  that cannot verify the signature against the key it holds for `f:` ignores the
+  packet. A station relays it no further than its scope, and never tells it on
+  to anyone outside that scope by any other means: not in a directory, not on a
+  page, not in an answer to a request. With no `scope:` it is global, like any
+  packet.
+
+**The kinds are values, not keys.** New ones will keep arriving for as long as
+there are networks to be on, and each is one line in this table, never a new
+key. A receiver that meets a kind it does not know keeps it and shows it as
+written; it refuses nothing.
+
+| `idtype` | `data:` is | Note |
+|---|---|---|
+| `licence` | callsigns an authority issued (section 6.4.2) | each is still bound by its own identity packet with `f:` set to it; this lists them under the person |
+| `reticulum` | Reticulum identity hashes, 32 hexadecimal characters | one per device |
+| `lxmf` | LXMF delivery addresses, 32 hexadecimal characters | where a device is written to; `lx:` on a beacon says the same of the device sending it |
+| `ble` | Bluetooth addresses that do not change, `AA:BB:CC:DD:EE:FF` | a board's. Only useful to somebody in radio range: state it with `scope:local` |
+| `wlan` | WLAN addresses, the same form | as `ble` |
+| `meshtastic` | Meshtastic nodes as section 3.2 writes them, `MT` and eight digits | lets a reply to the node reach the person |
+| `meshcore` | MeshCore nodes, `MC` and eight digits | as `meshtastic` |
+| `email` | e-mail addresses | goes as far as its owner chooses with `scope:` |
+
+**What this proves, and what it does not.** The signature proves that the
+holder of the key SAYS these are theirs. It proves nothing about the other
+side: anybody can state a Meshtastic node or an address that is not theirs.
+A receiver therefore keeps a stated identity as a claim by that key, apart
+from what it observed itself (the address a verified packet really came
+from), and where two keys state the same identity it keeps both and merges
+neither. This is section 6.4.2's rule for issued callsigns, applied to every
+kind.
+
+A receiver that knows none of this reads the packet as an identity with two
+fields it skips (section 4), so nothing it already keeps is disturbed.
 
 ### 6.4 Permitted use by band
 
@@ -10054,6 +10128,8 @@ packet **250 bytes**, on every transport.
 | `xr` | `b64` | hidden parts of a redacted packet (section 6.2.1) |
 | `sig` | `base85` | signature |
 | `k` | `bech32` | public key, in `t:identity` and `t:challenge`, and on `q:owner`, a claim and a new key's answer (sections 11.9, 11.10) |
+| `idtype` | `label` | on `t:identity`, which kind of identity `data:` holds: `licence`, `email`, `ble`, `meshtastic` and the others of section 6.3.3 |
+| `data` | `text` | on `t:identity`, the identities of that kind, separated by commas, no spaces; `-` withdraws the kind (section 6.3.3) |
 
 ### Position and movement
 
