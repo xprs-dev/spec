@@ -2629,11 +2629,14 @@ t:request f:X1QZ3N ts:2026-08-08_14:26:40 q:have file:nYxKzGm4vT2pQ8dW5jR7cL0aFb
 of three forms:
 
 ```
-t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:41 r:17d873 s:have have:full size:240kB
-t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:41 r:17d873 s:have have:412/900 size:58MB
+t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:41 r:17d873 s:have have:full size:240640
+t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:41 r:17d873 s:have have:412/900 size:60817408
 ```
 
-86 and 88 bytes. `have:full` is the whole file. A partial holder answers the
+87 and 92 bytes. `size:` here is the file's exact length in bytes, a plain
+integer: a holder knows it, and an asker needs it to the byte to fetch by
+pieces (section 7.7.2), where the rounded `size:` of a description (section
+7.7.1) would leave the last piece unknown. `have:full` is the whole file. A partial holder answers the
 piece bitfield as base64url, least significant bit first, **when it fits the
 packet**, up to roughly 1200 pieces, and the fraction `have:412/900` when it
 does not; the exact map travels with the transfer itself once one starts.
@@ -4366,7 +4369,11 @@ zero, the requester receives some bytes twice, and the file still
 verifies or still fails as a whole.
 
 The reply flow gives `cmd:file`'s codes their concrete meaning. `202`, I hold
-it and it fits my budget; the bytes then move on whatever bulk lane the pair's
+it and it fits my budget, and the holder says how long it is: `size:` on a
+`202` is the file's exact length in bytes, a plain integer (as on a `q:have`
+answer, section 8.1). The asker then knows the number of pieces without a
+second question, and can take them from every holder that said `202` (section
+7.7.2). The bytes then move on whatever bulk lane the pair's
 bearers offer (a GATT session beside the advert channel, a Reticulum resource,
 a fetch across the LAN, examples, not requirements), and `200` follows only
 after the REQUESTER's own hash check passed, making the final receipt a
