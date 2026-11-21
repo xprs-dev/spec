@@ -2169,7 +2169,7 @@ Two optional fields complete the description:
   name costs bytes the packet may not have.
 
 ```
-t:file f:X1QZ3N ts:2026-08-08_14:26:40 file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg size:240kB ph:qA7dTf2mWx9bK4pZcV0yLuJ3gRhN8sE5iDoQ6vXaB1M.xfl tag:radio sig:<60 characters> m:the finished dipole
+t:file f:X1QZ3N ts:2026-08-08_14:26:40 file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg size:240kB ph:qA7dTf2mWx9bK4pZcV0yLuJ3gRhN8sE5iDoQ6vXaB1M.xpl tag:radio sig:<60 characters> m:the finished dipole
 ```
 
 250 bytes, a fully described, signed, piece-verifiable file sits exactly at
@@ -2187,9 +2187,10 @@ something lost, worth keeping anyway, because it says what was lost.
 
 ### 7.7.2 Listings: a folder's files, and a file's pieces
 
-One text format serves two needs, because a folder of files and a file's pieces
-are the same shape: a list of hashes with sizes. A **listing** is a UTF-8 text
-file of LF-terminated lines:
+Two lists, and each has the form its use asks for. A folder is names, sizes and
+hashes that people read and compare, so it is text. A file's pieces are hashes
+and nothing else, read by machines one at a time, so they are bytes. A
+**listing** is a UTF-8 text file of LF-terminated lines:
 
 ```
 XFL1
@@ -2206,17 +2207,44 @@ exactly the rule that puts `m:` last in a packet.
   name. Sorting makes the listing deterministic: the same folder content always
   produces the same listing bytes, therefore the same hash, therefore one
   listing however many people publish it.
-- **A piece list**: `hash size` per line, no name, no extension on the hash, in
-  piece order, here the order IS the content. Every piece is `size:` long
-  except the last. Recommended piece sizes: 64 kB, 256 kB for files of 4 MB
-  and up, 1 MB for files of 64 MB and up. A 240 kB photograph's piece list is
-  four lines and about 200 bytes; a 4 GB video's is 4096 lines and about
-  200 kB, either way a small fraction of the file it verifies.
 
-A listing is itself an ordinary content-addressed file: described by a
-`t:file`, fetched with `cmd:file`, asked after with `q:have`, deposited with
-`cmd:put`, and verified against the reference that named it. Nothing new
-travels.
+A **piece list** is not a listing and not text. It is the SHA-256 of each
+piece, 32 bytes each, one after another in piece order, with no magic, no
+separator and nothing else: here the order IS the content. Its extension is
+`xpl`, and `ph:` names it.
+
+- **Piece k is at offset 32 times k.** A station verifies one piece by reading
+  32 bytes, without parsing the list or holding it in memory, which is what
+  lets a board with a few kilobytes to spare serve and check pieces of a file
+  far larger than its memory.
+- **The piece size follows from the file's size**, so no field carries it:
+  65 536 bytes; 262 144 for a file of 4 194 304 bytes and up; 1 048 576 for a
+  file of 67 108 864 bytes and up. Every piece is that long except the last.
+  A reader that holds only a rounded `size:` settles any doubt from the list
+  itself: its length divided by 32 is the number of pieces, and only one of
+  the three sizes gives that number. A list whose length is not a multiple of
+  32, or fits none of them, is not a piece list and is discarded.
+- **A file of one piece has no piece list.** Its own hash already verifies it,
+  so anything that crosses the packet lanes (section 7.7.4, 7.7.6: at most
+  32 768 bytes, half a piece) never needs one. A piece list exists for files
+  that move where there is a link.
+- A 240 kB photograph's piece list is four hashes, 128 bytes; a 4 GB video's
+  is 4096 hashes, 128 kB, either way a small fraction of the file it verifies.
+  A list of up to 28 pieces, a file of about 1.8 MB, fits one inline file
+  (section 7.7.4).
+
+**Why bytes here, when the packets are text.** A packet is text so that anyone
+listening can read who is speaking and what is asked, which the amateur bands
+require and every bearer benefits from. A file's content was never that: a
+photograph on the radio is bytes written as base64url in `b:`, in a format
+this document publishes, and a piece list crossing the same way is no
+different. Text would cost half as much again (a hash is 43 characters as
+text, 32 bytes as bytes) to say the same thing to the same machine.
+
+A listing and a piece list are each an ordinary content-addressed file:
+described by a `t:file`, fetched with `cmd:file`, asked after with `q:have`,
+deposited with `cmd:put`, and verified against the reference that named it.
+Nothing new travels.
 
 **A station that verified pieces 0 to 411 of 900 holds pieces 0 to 411, may
 say so (section 8), and may serve them.** That is the rule that turns a crowd
