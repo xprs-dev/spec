@@ -136,7 +136,7 @@ somebody's ordinary device rather than appointed infrastructure.
 | **operator** | the person; holds the key their stations sign with, answers for what they transmit | 3, 9 |
 | **station** | one device speaking XPRS under a callsign; an operator's phone, tracker and desktop are stations sharing a base callsign | 3.1 |
 | **relay** (APRS: digipeater) | repeats a packet on the medium it heard it, within the hop budget, appending itself to `via:` | 9.1-13.2 |
-| **carrier** | holds a message in custody for a station that is absent, and hands it over, with a signed receipt, when it can | 9.3-13.7 |
+| **carrier** | holds a message in custody for a station that is absent, and hands it over, with a signed receipt, when it can | 9.3-9.7 |
 | **gateway** (APRS: iGate) | republishes packets onto something that is not XPRS, an archiver, APRS-IS, the internet, under the scope rules, and publishes who it hears so the absent stay reachable | 9.11.3, 12.1, 12.8 |
 | **file server** | holds content-addressed files and serves them by hash (`serve:files`, `cmd:file`, `q:have`) | 7.7, 24 |
 | **archiver** | keeps packets and answers for them: the spool of what it heard (re-aired on `cmd:history`), the publications of its depositors, and mail held for recipients (`t:mailbox hold:` names one deliberately). Every station is one at its own scale; `serve:archive` announces the role to others | 24, 11.2, 36 |
@@ -430,7 +430,7 @@ t:receipt f:X1A67X-2 d:X1RD89 r:40f357 s:ack sig:<60 characters>
 on that identifier: one message, delivered, and, if it cares to look,
 delivered to two of the three devices that person carries.
 
-Mail held for a bare callsign (section 6.3) is discharged by handing it to
+Mail held for a bare callsign (section 9.3) is discharged by handing it to
 **any** device wearing it. The person has their message; the carrier's job is
 finished. Getting that message onto their *other* devices is not the mesh's
 business, it is the same key on all of them, and their own software can settle
@@ -1104,7 +1104,7 @@ naming it would be ambiguous. Hashing the whole packet costs nothing, because
 none of it goes on the wire.
 
 `r:` carries an identifier when a packet refers to another: a reply, a reaction,
-a receipt, or a withdrawal of the sender's own earlier packet (section 11.2).
+a receipt, or a withdrawal of the sender's own earlier packet (section 7.8.2).
 
 ---
 
@@ -1787,7 +1787,7 @@ different key, and both announcements will verify.
 
 | Question | Answered by |
 |---|---|
-| does the holder of this key write these packets | the signature, section 7.1 |
+| does the holder of this key write these packets | the signature, section 6.1 |
 | is that key holder present right now | a challenge, section 29, on licence-free spectrum only |
 | was this callsign issued to this person | **nothing in XPRS**; the authority's public register, out of band |
 
@@ -1826,7 +1826,7 @@ Three consequences follow, and they are the price of operating there:
 - **Signing is authorship, not confidentiality.** On an amateur band XPRS can
   tell a receiver who wrote a packet and can never keep a third party from
   reading it. An operator wanting privacy uses licence-free spectrum, where
-  section 7.2 applies in full.
+  section 6.2 applies in full.
 
 ---
 
@@ -2294,8 +2294,10 @@ public key, and either arriving over 40 km of nothing is worth nine packets.
 A file can additionally be offered to stock BitTorrent clients, and the trick
 is that nothing extra needs to be transmitted to arrange it. The torrent for a
 file is built **deterministically**: single file, named `<digest-hex>.<ext>`,
-piece length the power of two nearest `size/1024` clamped between 16 kB and
-4 MB, no private flag and no source field. Two stations that hold the same
+piece length the smallest power of two that is at least `size/1024` (the file
+size in bytes, divided, rounded up), never under 16 384 bytes and never over
+4 194 304, no private flag and no source field. The bounds are powers of two,
+so they are binary: a 100 MB file gets 131 072-byte pieces. Two stations that hold the same
 bytes therefore derive the same torrent and the same infohash independently,
 the swarm address is a pure function of the content.
 
@@ -2327,7 +2329,10 @@ t:file f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:40 file:Uc3nRw8kFa5xPd1qGz7mYb0tJe6
 
 `off:` is the byte offset the chunk begins at, the same field `cmd:file` resume
 already uses (section 11.2); `b:` is base64url of the raw chunk; `size:` is the
-whole length, repeated on every packet so any one identifies the transfer. Every
+whole length, repeated on every packet so any one identifies the transfer. On
+this lane `size:` and `off:` are exact counts of bytes written as plain
+integers, never a rounded quantity with a unit (`5000`, not `5kB`): they place
+bytes, and a rounded one cannot. Every
 chunk but the last has the same length: the largest multiple of three bytes
 whose packet, with `off:` written as the file size, still fits 250. So chunk k
 begins at k times that length, and any full chunk tells a receiver the grid.
@@ -2361,8 +2366,9 @@ receiver bounds both the file size it will assemble and the number of
 transfers it will buffer, so a peer that announces a large `size:` and never
 completes it cannot grow memory without bound.
 
-This lane is for SMALL binaries only, a firm cap in the low tens of kilobytes,
-and it never mixes with the bulk lane: a file is fetched with `cmd:file` where a
+This lane is for SMALL binaries only, a firm cap in the low tens of kilobytes
+(reference: 32 768 bytes; a holder asked for more on this lane answers
+`code:403`), and it never mixes with the bulk lane: a file is fetched with `cmd:file` where a
 link exists, and packetised this way only where one does not. A meme at a few
 hundred packets over a hub that would otherwise pass nothing binary is the whole
 point; a video is section 7.7's business and stays there.
@@ -2379,7 +2385,7 @@ beside `m:`, never inside it:
 143  t:message f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:40 file:nYxKzGm4vT2pQ8dW5jR7cL0aFbNs9hUe3oXiC6EkM1w.jpg size:23kB m:the antenna after the storm
 ```
 
-That placement is what lets a sealed 1:1 (section 9.2) carry an attachment at
+That placement is what lets a sealed 1:1 (section 6.2) carry an attachment at
 all: the caption goes into `x:` and the reference does not. A hash is public
 information in this format already, since section 11.2 gates the BYTES and
 never the reference, so nothing is given away by leaving it in the clear that
@@ -2521,7 +2527,7 @@ q:have       say whether you hold the file named by file:
 q:state      send your device state: state:, level:, target: (section 11.7)
 q:snapshot   send a current still: url: to fetch it (cameras, section 11.7.2)
 q:stream     send where the live view is: url: to open it (section 11.7.2)
-q:mail       say how much mail you hold, for the callsign in only: (13.12.3)
+q:mail       say how much mail you hold, for the callsign in only: (9.12.3)
 ```
 
 Several are separated by commas. An unknown word is ignored, so `q:pos,bat,co2`
@@ -2602,10 +2608,14 @@ t:result f:X3RLY7 d:X1QZ3N ts:2026-08-08_14:26:41 r:17d873 s:have have:412/900 s
 86 and 88 bytes. `have:full` is the whole file. A partial holder answers the
 piece bitfield as base64url, least significant bit first, **when it fits the
 packet**, up to roughly 1200 pieces, and the fraction `have:412/900` when it
-does not; the exact map travels with the transfer itself once one starts. A
-station that holds nothing stays silent: on a broadcast ask, a hundred "no"s
-would cost more than the answer is worth, and silence already says it
-(section 8).
+does not; the exact map travels with the transfer itself once one starts.
+
+**A miss depends on how the question was asked.** On a broadcast ask (no `d:`),
+a station that holds nothing stays silent: a hundred "no"s would cost more than
+the answer is worth, and silence already says it (section 8). An ask addressed
+to one station (`d:`) is always answered, because the asker is waiting on that
+station and nobody else will speak: `code:404`, and when the station keeps an
+index of who holds what (section 12.9.2), `m:try` naming holders.
 
 This is the radio's version of the claim a provider record makes on an
 internet overlay: the same "I hold it", scoped to whoever can actually hear
@@ -2748,7 +2758,7 @@ subset of `relay:`** and must never be validated as one: a carrier delivers, a
 station may relay a packet naming nobody, and an older station relays without
 reading the field at all.
 
-**The section 6.1 budget still binds**, counted from `via:` exactly as before.
+**The section 9.1 budget still binds**, counted from `via:` exactly as before.
 A `relay:` naming more stations than the type's budget allows names hops that
 can never fire, and a sender composing one has made an error worth refusing at
 the keyboard rather than discovering on the air.
@@ -2759,7 +2769,7 @@ cancel to prevent; what it would do instead is let a station outside `relay:`
 silence the one the sender asked for. The random wait still applies, because it
 costs nothing and there is no reason for two mechanisms where one will do.
 
-**Carrying is not relaying, and section 6.3 is not suspended.** A holder may
+**Carrying is not relaying, and section 9.3 is not suspended.** A holder may
 deliver a held packet to the station named in `d:`, appending itself to `via:`
 as it always does, that is the last hop and it is honest. It may not hand the
 packet to another holder while `relay:` names hops that have not happened. Mail
@@ -2770,7 +2780,7 @@ bearers it has, exactly as it would for any other packet. Section 12.0's rule
 about choosing among paths to the same station is unchanged.
 
 A station that does not know this field skips it (section 4) and relays under
-section 6.2 as before, so `relay:` narrows the traffic only among stations that
+section 9.2 as before, so `relay:` narrows the traffic only among stations that
 understand it. It is a request, not a guarantee, and a sender that needs a
 guarantee does not have one.
 
@@ -2865,7 +2875,7 @@ t:message f:X1QZ3N d:X1RD89 ts:2026-08-08_14:26:40 dest:38,24 near:200km urg:hig
 239 bytes. `dest:`, `near:`, `urg:` and `until:` stay in cleartext because a
 carrier cannot route without them. `m:` is replaced by `x:`, sealed to the
 recipient's key, so every carrier can decide whether to carry it and none can
-read it. This is the same rule as section 7.2 and needs no new mechanism.
+read it. This is the same rule as section 6.2 and needs no new mechanism.
 
 A sealed body is longer than the text it replaces, so a long carried message is
 split into parts (section 7.6). Every part repeats the routing keys, since a
@@ -2888,7 +2898,7 @@ t:receipt f:X1RD89 d:X1QZ3N ts:2026-08-20_09:12:00 r:766d3e s:sign dest:38.72,-9
 
 184 bytes. `r:` names the original message, `766d3e`, computed from its
 sender, timestamp and text, and `sig:` signs the receipt, which covers `f:`
-and `r:` together (section 7.1). The result is evidence that the holder of
+and `r:` together (section 6.1). The result is evidence that the holder of
 `X1RD89`'s key acknowledged that exact message, and it is checkable by anyone
 holding the public key, not only by the sender.
 
@@ -3026,7 +3036,7 @@ delivery: nothing is transmitted, the copy stays held, and the attempt is not
 counted. The station keeps listening, and when the peer's beacon returns the
 ladder resumes where it left off rather than having been spent into an empty
 room. A peer that comes back in an hour is then still owed its message, which is
-what store-and-forward was for (section 6.3).
+what store-and-forward was for (section 9.3).
 
 This costs nothing to implement, because the evidence is already arriving: a
 station hears its neighbours' beacons whether or not it has anything to send.
@@ -3120,7 +3130,7 @@ t:receipt f:X1RD89 d:X1QZ3N ts:2026-08-20_09:12:00 r:766d3e s:sign route:X32DVA,
 different list and is still being written. `route:` is the journey the message
 made, fixed at the moment it arrived.
 
-Because `sig:` covers everything except itself (section 7.1), the signature
+Because `sig:` covers everything except itself (section 6.1), the signature
 binds the signer, the message identifier and the route together. The sender
 gets back a statement that this person read this message and that it came by
 these hands, which nobody along the way can alter without breaking the
@@ -3332,7 +3342,7 @@ public as `d:LISBOA`, and publishes the roster on top.
 **Only encryption keeps content private.** `scope:` asks well-behaved stations
 not to spread a packet. It is a request that a hostile or careless station
 ignores, and it leaves the text in clear for everyone in radio range regardless.
-A packet that must not be read by strangers uses `x:` (section 7.2), and one
+A packet that must not be read by strangers uses `x:` (section 6.2), and one
 that must not travel uses both.
 
 ### 9.11.4 Against the other limits
@@ -3461,7 +3471,7 @@ exactly that answer, in `hold:`'s order of preference.
 This is the one packet in the format where forgery pays directly. Anyone who can
 publish `t:mailbox f:X1QZ3N hold:<attacker>` collects that station's incoming
 mail from every polite sender, and the sender believes it delivered. Signing is
-the default everywhere (section 7.1) and here it is the reason the rule exists:
+the default everywhere (section 6.1) and here it is the reason the rule exists:
 an unsigned mailbox declaration is a request to misroute somebody's mail, and
 it should be ignored rather than displayed.
 
@@ -3493,12 +3503,12 @@ declaration made about September is better information than one made about every
 month. Within a single declaration, `hold:` stays in order of preference.
 
 Outside every window a sender falls back to the open-ended declaration, and
-failing that to any station advertising `serve:archive` (section 9.2).
+failing that to any station advertising `serve:archive` (section 13).
 
 ### 9.12.2 Cancelling one
 
 Plans change earlier than they were meant to. A declaration is withdrawn by
-naming it, exactly as a warning is (section 11.2):
+naming it, exactly as a warning is (section 25.2):
 
 ```
 t:mailbox f:X1BOA3 ts:2026-08-20_09:00:00 r:46b4ba remove:mailbox sig:<60 characters>
@@ -4027,7 +4037,7 @@ station that keeps five years publish the same line.
 #### 10.9.2 Depositing a group's traffic
 
 Any member may hand a group's packets to an archiver, and to a always-on archiver
-in particular. This is section 15.8's rebroadcast with a destination: the
+in particular. This is section 10.8's rebroadcast with a destination: the
 packets are signed by the group and by their authors, so the archiver trusts
 the depositor for nothing and verifies everything.
 
@@ -4332,7 +4342,12 @@ it and it fits my budget; the bytes then move on whatever bulk lane the pair's
 bearers offer (a GATT session beside the advert channel, a Reticulum resource,
 a fetch across the LAN, examples, not requirements), and `200` follows only
 after the REQUESTER's own hash check passed, making the final receipt a
-statement about content rather than about transmission. `500`, the transfer
+statement about content rather than about transmission. The holder learns of
+that check from the lane that carried the bytes: the receiver's last word on it
+(the bulk lane's FILE_OK of section 11.2.2, the closing proof of a Reticulum
+resource). On a lane that says nothing back, the holder sends no `200`, and
+the requester's own hash check is the end of the exchange: a requester MUST
+NOT wait for a `200` once the bytes verify. `500`, the transfer
 started and died. `404`, not held. `403`, refused, and a file too large for
 the station's budget is refused here with `m:` saying so, which is what
 `size:` on the description exists to prevent. `429`, over budget this hour,
@@ -4424,6 +4439,15 @@ asks again. Newest first is also the right order for a person, somebody back
 from four days at sea wants last night before last Tuesday, and a page that
 never arrives costs them the least.
 
+**A continuation must make progress**, and each side owes half of that:
+
+- The station answering MUST serve records strictly OLDER than `until:`, so the
+  window a continuation asks for is one it has not already served.
+- The station asking MUST notice when it stops moving. A continuation that
+  comes back reaching the same oldest `ts:` as the one before it has stalled:
+  it is not new traffic and is not counted as any (section 12.10.2), and the
+  asker abandons the window rather than asking a third time.
+
 Nothing here is stateful. The station keeps no cursor, remembers no session and
 owes the requester nothing between exchanges, so a request that is never
 continued costs it nothing, and a station that reboots mid-backfill has broken
@@ -4513,7 +4537,7 @@ A packet that opens a door is the highest-value forgery in this format, and the
 rules here are stricter than elsewhere because of it.
 
 **A command must be signed, and one that cannot be verified is discarded.**
-Signing is the default everywhere (section 7.1); here it is a requirement, and
+Signing is the default everywhere (section 6.1); here it is a requirement, and
 "unsigned" is not a state a command may be acted on in.
 
 **A command expires.** Without that, one signed packet opens a door for ever to
@@ -4527,9 +4551,20 @@ under a 10 percent duty cycle, and a relay hop or two on top can honestly take
 longer than a minute. Five minutes is still far too short for a recording to be
 useful hours later.
 
-**Commands are never carried.** Section 9.4 exists to deliver somewhere else
-later, and later is precisely what a command must not be. A carrier drops one
-rather than parking it.
+**A command that changes something is never carried.** Section 9.4 exists to
+deliver somewhere else later, and later is precisely what an action must not
+be: a door opened, a setting changed, a file accepted. A carrier drops such a
+command rather than parking it.
+
+**An ask is the exception, because it changes nothing.** `cmd:history` and
+`cmd:file` read what a station holds; answered late or twice they open no door,
+and the worst a recorded copy can do is cost one metered answer (section 30.2).
+So an ask addressed to a station that is asleep is mail like any other (section
+12.1): a holder may keep it, hands it over once and keeps no copy (section
+12.8.2), and the station that receives it MAY answer although its window has
+passed. Two things stay as they are. A `cmd:file` carrying a `have:` map is a
+live negotiation and is not held (section 12.8.3, step 2). And an ask is still
+signed and still metered: the exception is to the clock, not to who may ask.
 
 **Repeating a command does not repeat the action.** The derived identifier of a
 retransmitted command is unchanged, so a station that has acted on
@@ -5478,7 +5513,7 @@ bytes the content IS the smaller thing, and it rides the packets.
 `ts:` when, `pos:` where, `dest:` and `near:` the region, `until:` expiry,
 `scope:` reach. And the signature travels with it, so an archiver passing on a
 third party's publication can neither forge, retarget nor resurrect it, and the
-receiver verifies against the author's key (section 7.1). That is what makes
+receiver verifies against the author's key (section 6.1). That is what makes
 gossip between archivers safe.
 
 ### 12.3 You choose your archivers
@@ -5563,14 +5598,14 @@ network to work.
 **The sender is usually gone**: a message written on a phone that then pockets
 its radio. If delivery depended on that phone still being reachable when the
 recipient next wakes, most messages between people not simultaneously awake
-would never arrive. Store-and-forward exists for this (section 6.3), and an
+would never arrive. Store-and-forward exists for this (section 9.3), and an
 archiver is its best carrier: always on, addressable, chosen deliberately. So
 **mail is handed to an archiver too**, which tells the recipient something
 waits, and an archiver is a natural entry in a station's `hold:` list (section
 9.12), which already exists and needs nothing added.
 
 **Privacy is the content's problem, and the format already solved it.** Seal the
-body with `x:` (section 7.2) and the archiver stores something it cannot read:
+body with `x:` (section 6.2) and the archiver stores something it cannot read:
 
 ```
 t:message f:X1QZ3N d:X1RD89 ts:2026-08-13_10:14:00 x:pQ4m9xT2vB8kR until:2026-08-20_00:00:00 sig:<60 characters>
@@ -5661,9 +5696,9 @@ order:
    gateway actually meets X and cost nothing afterwards. The place X was LAST
    seen (L2) is used only when nothing is live, and only the freshest of it.
 
-The hand-off is CUSTODY (section 6.3), not content sync: the author's packet
+The hand-off is CUSTODY (section 9.3), not content sync: the author's packet
 travels byte for byte with its signature, `via:` gains the holder's callsign,
-the section 6.1 budget and 6.2 loop check apply, and section 12.8's disclosure
+the section 9.1 budget and 9.2 loop check apply, and section 12.8's disclosure
 rule stands. **Once per holder and gateway**: a packet is forwarded one time to
 each gateway, one that comes back (per `via:`) is not forwarded again, and a
 gateway that reports X LATER still gets its copy, because the report is the
@@ -5736,7 +5771,7 @@ A writes to B. B is asleep. A is a telephone, and goes into a pocket.
    and that nothing has acknowledged is copied to A's archivers, unchanged and
    with its signature intact. This is the step whose absence loses the message:
    a retry ladder on A cannot help, because A is the station that leaves. It is
-   not a relay — `via:` is untouched and the section 13.1 hop budget is not
+   not a relay — `via:` is untouched and the section 9.1 hop budget is not
    spent — it is the author handing a copy to the station it chose to keep its
    mail. The wait before depositing is an implementation's own: long enough
    that a delivery in progress is not duplicated, short enough to happen before
@@ -5753,7 +5788,15 @@ A writes to B. B is asleep. A is a telephone, and goes into a pocket.
    passed. **A live negotiation** — a `cmd:file` carrying the `have:` map of
    what the asker lacks right now, or the `t:result` answering one — asks for
    bytes on behalf of somebody who has stopped waiting. `scope:local` is never
-   held at all (9.11.1), and a group has no mailbox (12.8.1).
+   held at all (9.11.1), and a group has no mailbox: nothing is held FOR an
+   `X5` (section 10.9 says what an archiver keeps of a group).
+
+   This step is about MAIL: a packet whose `d:` names one station. It does not
+   limit what a station PUBLISHES to its archivers. An observation or an
+   identity pushed to an archiver (section 12.1; the gateway's report of
+   section 12.8.1) carries no `d:`, is kept as the publication it is, and is
+   served to anybody. "An addressed copy" there means the transport delivers
+   the packet to that archiver; the packet is unchanged and gains no `d:`.
 
 3. **The archiver delivers when it can reach B**, not only when it hears B.
    Section 12.8.1's trigger is the packet from B itself, which is the right
@@ -5772,18 +5815,18 @@ A writes to B. B is asleep. A is a telephone, and goes into a pocket.
    B learns that somebody else is holding a copy.
 
 5. **B's receipt goes to more than A.** A verified `t:receipt` releases every
-   holder that hears it (13.3), and the one station guaranteed not to be
+   holder that hears it (9.7.1), and the one station guaranteed not to be
    listening is A, who is asleep — which is why an archiver had the message at
    all. So B sends the same signed receipt, unchanged, to:
    - the stations named in `via:`: they carried it, so they hold it;
-   - the mailboxes A declared with `t:mailbox hold:` (13.12): A deposited
+   - the mailboxes A declared with `t:mailbox hold:` (9.12): A deposited
      there, and those copies will be re-delivered until told otherwise.
 
    The receipt is never re-addressed on the way. `d:` is inside what the
    signature covers, and 9.7.1 requires that signature precisely so a stranger
    cannot delete other people's mail; a holder does not need to be the
    addressee, because releasing on an OVERHEARD acknowledgement is exactly what
-   13.3 describes.
+   9.7.1 describes.
 
 6. **The receipt is itself mail.** It is addressed to A, who is still away, so
    the archiver holds it like anything else and delivers it when A returns.
@@ -5792,7 +5835,7 @@ A writes to B. B is asleep. A is a telephone, and goes into a pocket.
 
 7. **A station says where its mailbox is.** None of step 5 works if nobody
    knows where A's mail is kept, so a station that has archivers declares them
-   with `t:mailbox hold:` (13.12) and re-declares when the list changes. A
+   with `t:mailbox hold:` (9.12) and re-declares when the list changes. A
    declaration is signed; an unverifiable one is ignored, because a forged one
    collects somebody else's mail from every polite sender.
 
@@ -5854,7 +5897,10 @@ X1BOA3 2026-08-17_14:02:36
 X1QZ3N 2026-08-17_14:05:02
 ```
 
-One line per callsign, `call` then `ts`, sorted by callsign. The directory is an
+One line per callsign, `call` then `ts`, sorted by callsign. A line that is not
+a callsign and a time names something else the archiver publishes (today only
+the groups index of section 12.9.7); such lines come directly after the magic,
+before the first callsign, and a reader skips any line it cannot read. The directory is an
 ordinary content-addressed file: named in its archiver's signed announcement,
 fetched with `cmd:file`, verified against its reference like anything else.
 
@@ -5941,9 +5987,10 @@ routes callsigns (section 12.9). A holder advertises each file it keeps as a
 signed provider record, the hash then the holder, verifiable against the
 holder's key like every other claim; large archivers exchange those records
 among themselves the way they exchange the callsign directory, so a hash
-learned anywhere resolves to a holder somewhere. A `q:have` an archiver cannot
-answer from its own store it answers from that index, naming holders in
-`m:try` the way a `cmd:history` miss names them. Small archivers do not carry
+learned anywhere resolves to a holder somewhere. A `q:have` addressed to an
+archiver (section 8.1: a broadcast one it cannot answer it leaves alone) that
+it cannot answer from its own store it answers from that index, `code:404`
+naming holders in `m:try` the way a `cmd:history` miss names them. Small archivers do not carry
 the whole index: they report the hashes they hold UPWARD to the large
 archivers they chose, on the same push that carries their publications
 (section 12.3), and pull a resolution back when a duty needs one. No archiver
@@ -5992,7 +6039,7 @@ difference from APRS-IS, whose central servers hold the only copy of exactly
 this.
 
 Gossip rides existing packets, a signed `t:observation` with `hears:` (15.6.3), a
-signed `t:mailbox` (9.12), a `t:service` announcement (24), relayed verbatim
+signed `t:mailbox` (9.12), a `t:service` announcement (13), relayed verbatim
 under section 12.1. There is no gossip packet type, because a new envelope for
 old facts would be a second schema to drift.
 
@@ -6271,8 +6318,8 @@ characters, each left out when empty. A line that does not parse is skipped.
 At about 400 bytes per busy group, a thousand public groups are some 400 kB.
 
 **Where it is named.** On a line of the archiver's directory (section 12.9),
-`XGRP1 file:<ref>.xgrp`, which an older reader skips like any line it cannot
-read. So a station finds the index exactly where it already finds the
+`XGRP1 file:<ref>.xgrp`, written directly after the directory's magic line,
+which an older reader skips like any line it cannot read. So a station finds the index exactly where it already finds the
 directory, and an unchanged index leaves the directory's hash unchanged. An
 archiver rebuilds the index at most every thirty minutes, and only names a
 new one when something in it changed.
@@ -6346,8 +6393,11 @@ same ask as any meeting:
 165  t:command f:X1QZ3N d:X3ARC1 ts:2026-08-20_09:30:00 scope:local cmd:history since:2026-08-20_09:20:00 sig:<60 characters>
 ```
 
-`since:` is the watermark; `scope:local` keeps the ask on the short-range
-bearers, where a locally-reachable archiver is. The cycle:
+`since:` is the watermark. `scope:local` is for an archiver heard nearby, as
+this one is: it keeps the ask on the short-range bearers. The same ask to an
+archiver the device chose, or to an always-on one, is written WITHOUT
+`scope:local` (step 1, and section 12.12.2), or it would never leave the room.
+The cycle:
 
 1. Every poll period (default TEN MINUTES), the device looks at the stations it
    heard DIRECTLY (no `via:`) within the beacon-staleness window and picks those
@@ -6467,7 +6517,7 @@ Discarded first, kept longest last:
 1. **The spool**, ordinary heard traffic: the bulkiest class and the cheapest to
    lose, since any peer's spool overlaps it and section 12.10 refills holes.
 2. **Custody mail**, store-and-forward held for stations that did NOT name this
-   archiver (section 6.3): losing it costs a delivery somebody else may still
+   archiver (section 9.3): losing it costs a delivery somebody else may still
    make.
 3. **Declared mail**, for callsigns whose `t:mailbox hold:` names THIS archiver
    (section 9.12): those recipients chose this station deliberately and check it
@@ -6700,7 +6750,7 @@ answer is the archiver, as both destination and source:
   each other until one archiver they can all address is holding the conversation.
 - **What an archiver admits off the internet.** Section 12.3's declaration rule
   guards against spooling other people's MAIL (the `d:` case) and MUST NOT be
-  applied to publications: a `t:status` (section 27), a `t:reaction` (section
+  applied to publications: a `t:status` (section 16), a `t:reaction` (section
   7.5) and a `t:message` with no `d:` are written for everybody by definition. An
   archiver that refuses them is refusing to be an archiver of public traffic.
 
@@ -7036,7 +7086,7 @@ station that stops carrying does not owe anybody a withdrawal.
 
 ### 13.3 Trust
 
-**Sign it.** Signing is the default (section 7.1) and an unsigned service
+**Sign it.** Signing is the default (section 6.1) and an unsigned service
 advertisement is worth nothing: `serve:internet` is an invitation to route
 traffic through a station, and forging one is the cheapest way to collect other
 people's packets.
@@ -7044,7 +7094,7 @@ people's packets.
 Even signed, an advertisement is a **claim about capability, not a promise of
 behaviour, and never evidence of good faith**. A station that truthfully
 gateways to the internet may also log everything that passes. Encrypt what
-should not be read (section 7.2) and set `scope:` on what should not travel
+should not be read (section 6.2) and set `scope:` on what should not travel
 (section 9.11); neither depends on trusting the station that carries it.
 
 ### 13.4 One port on an IP network
@@ -7092,8 +7142,10 @@ not say. A connection from a private or link-local address is the LAN it looks
 like: recorded under `lan`, visible on the air view, archived like any local
 bearer. A connection from a public address travelled the internet whatever
 port it used, and it is treated like the Reticulum lane: never shown
-as an air sighting, and archived only under the mailbox-declaration rule of
-section 12.3.
+as an air sighting, and archived as section 12.12.2 says for anything off the
+internet. A publication (no `d:`) is admitted like one heard on any bearer;
+mail (a `d:`) is spooled only for a station whose mailbox declaration names
+this one (section 9.12).
 
 **The same number carries the broadcast bearer, on UDP.** TCP needs an address,
 and the first station on a network knows nobody's. So `link:lan` (section 15.6)
@@ -7396,7 +7448,7 @@ tuned to. Implementations follow this sequence and expect it of each other:
    channel and listens; on SENDING it the invitee tunes and follows. From
    this moment both are deaf to the calling channel, which the rest of the
    network handles as ordinary absence: anything addressed to them waits in
-   custody or a mailbox like mail for any station that is away (section 6.3).
+   custody or a mailbox like mail for any station that is away (section 9.3).
 4. **"I am also here, start sending."** The invitee re-airs its acceptance
    ON the working channel: the same signed packet, the same identifier, and
    hearing it there is the proof it cannot fake from anywhere else, the
@@ -8020,7 +8072,7 @@ would have been one false one.
 
 ### 15.6.2 Why `busy:` matters more than it looks
 
-Section 31 asks every station to be disciplined about airtime and gives it
+Section 30 asks every station to be disciplined about airtime and gives it
 nothing to measure. `busy:` is that measurement, and it changes politeness from
 a rule of thumb into a decision.
 
@@ -9306,7 +9358,7 @@ is.
 Anyone can write `f:CT1ABC-9` on a packet. Three things already limit what that
 buys an impostor, and each stops short of the same place.
 
-A signature (section 7.1) proves the packet was written by the holder of a key.
+A signature (section 6.1) proves the packet was written by the holder of a key.
 It is optional, most traffic will not carry one, and a signed packet can be
 replayed later by anyone who heard it.
 
@@ -9486,14 +9538,25 @@ answer is not that they must be refused, and not that they must be honoured.
 - **A bounded number of answers per period.** Section 29.4 already sets this
   precedent for challenges, and the reasoning transfers unchanged: an unlimited
   right to demand work from a battery-powered station is a way to flatten it.
+  The reference budget, which the reference stations ship and other sections
+  cite, is per hour: **six answers to a caller the station knows** (one whose
+  key it holds or whom its operator follows), **two to a stranger, twelve in
+  all**. It is a reference, not a requirement: an always-on archiver raises it
+  as far as its machine allows (section 12.9.4), and a station on a battery
+  may lower it. A `cmd:history` and a `cmd:file` are counted against the same
+  budget.
 - **Refuse out loud.** Over budget, a station answers `code:429` rather than
 going quiet, and names in `m:` any station it knows that serves the same thing:
 
 ```
-t:result f:X3RLY7 d:X1BOA3 ts:2026-08-08_14:26:40 r:747ae8 code:429 sig:<60 characters> m:try X32DVA or CT1ABC-9
+t:result f:X3RLY7 d:X1BOA3 ts:2026-08-08_14:26:40 r:747ae8 code:429 sig:<60 characters> m:try X32DVA,CT1ABC-9
 ```
 
-157 bytes. Silence and refusal look identical to the asker and mean opposite
+154 bytes. **The list after `try` is callsigns separated by commas**, the same
+on a `code:429` here, a `code:404` redirect (section 12.9) and a `q:have` miss
+(section 8.1), best candidate first. `m:` is free text everywhere else, so a
+reader is lenient: it also accepts spaces and the word `or` between the
+callsigns, which older stations wrote. Silence and refusal look identical to the asker and mean opposite
 things, so a refusal that says nothing wastes the very airtime it was trying to
 save: the asker retries, reasonably, believing the packet was lost.
 
@@ -10235,8 +10298,9 @@ Answer at once with 202 even when the work takes minutes; any number of results
 may name one command. Splits across parts like a message; `cmd:interpret` puts a
 natural-language instruction in `m:` for a station that reads it, and a reply
 names the reassembled packet rather than any part. Must be signed, expires
-after 300 s unless `until:` says otherwise, never carried, never shown as a
-message. Authentication is not authorisation, the allow-list is the bot's.
+after 300 s unless `until:` says otherwise, never carried (an ask,
+`cmd:history` or `cmd:file`, may be held for a sleeping station and answered
+late: section 11.4), never shown as a message. Authentication is not authorisation, the allow-list is the bot's.
 
 `cmd:set` makes a device state true (section 11.7): `state:` from the closed
 list `on off open closed locked unlocked` (`motion clear pressed` are report
@@ -10652,7 +10716,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 6.2.1, redacted packets (`xr:`) | **implemented**: the composer parses `((...))`, derives the slow key and builds the bars and the `xr:` blob in the core (`XprsCrypto.redact/restore`, `hal_xprs_redact`/`hal_xprs_unlock`), and a reader opens one at a tap, the passphrases that worked being remembered in the profile's encrypted store. Chat composes a redacted message in a 1:1, a closed group and the Local room; the wire is addressed there and scoped (`scope:local`) here. What is not implemented is redaction of the FIELDS the table permits (`pos:`, telemetry, `title:`): only `m:` is marked today |
 | Section 14.7, working-channel invitations | **specified, not implemented** as packets; the dance itself ships in binary for one pair of bearers, the WiFi-Direct negotiation (BLE subtype `0x57` ADVERT/REQ/OFFER, `docs/ble5.md`) coordinates exactly this move from the shared advert channel to a private fast lane, and 14.7 is that handshake generalised to every bearer, in text, signed |
 | Section 3.1, one person on several devices | **specified, not implemented.** Nothing numbers a device today: a station wears its bare callsign, and the chat wapp matches `d:` against that alone. The pieces the rule needs are already on the air, a beacon carries `f:` and `lx:`, so a device can see a sibling and tell it apart, but no code adopts a suffix, prefers the conventional number for its `type:`, or refuses a command addressed to a person |
-| Section 9.7.1, receipts signed by default | **specified, not implemented.** Signing exists (section 7.1) and receipts do not use it yet, which leaves the forged-`s:ack` deletion described there open on any station that honours the section 8 carrier release. The Reticulum side is not exposed to it, its acknowledgement is a link, not an XPRS packet, but an XPRS-native carrier would be |
+| Section 9.7.1, receipts signed by default | **specified, not implemented.** Signing exists (section 6.1) and receipts do not use it yet, which leaves the forged-`s:ack` deletion described there open on any station that honours the section 8 carrier release. The Reticulum side is not exposed to it, its acknowledgement is a link, not an XPRS packet, but an XPRS-native carrier would be |
 | Section 9.7.2, parking a retry with no evidence | **implemented** on the Reticulum side: a retry is spent only against a live path or a beacon heard in the last three minutes (`RnsService._peerReachable`), otherwise the entry parks without burning a rung and the copy stays held |
 | Section 9.7.1, receipts without asking | **specified, not yet on the air.** The rule and its exclusions are settled and the two example packets are test fixtures; no station sends an unasked `s:ack` yet. What made it necessary is fixed already on the Reticulum side: an unacknowledged single-packet delivery no longer reports itself as delivered, and the sender retries at 20s/60s/5min before leaving the copy held (`lxmf_router.dart`) |
 | Long messages in parts | implemented |
@@ -10664,11 +10728,11 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Identity announcement | implemented |
 | `key:value` fields separated by spaces | **implemented** everywhere the device transmits: the beacon, carried mail, and the chat wapp since 0.4.38. The three-`0x1F`-field frame remains only as a fallback that is still read, and that chat still sends for its control frames |
 | `t:` packet type as the first field | **implemented**; chat's own routing (a callsign, a `#group`, `!` for a position, empty for in-range) is now expressed as `t:` plus `d:`, not inferred from one overloaded field |
-| Derived identifiers | not implemented; the current wire hashes message content without a timestamp, so every `OK` collides, and carries a separate receipt identifier |
+| Derived identifiers | **implemented** (the "Section 5 identifiers" row above); this row described the wire before XPRS |
 | `ts:` on messages | **implemented** on the chat wire since 0.4.38: a message now states when it was written, so one that waited in a mailbox no longer shows the minute it arrived. A packet with no `ts:` is still read (section 15.7) |
 | Sections 11.7 and 11.7.2, a device reporting | **implemented** in the doorbell firmware (`firmware/models/reolink-d340w`), the first X4 device in this project that holds its own key rather than a controller holding it for it. The daemon on the camera signs and airs `state:pressed`, `state:motion` and `state:clear` with a `url:` to a still it serves itself, over the LAN, and it serves that still at API-HTTP.md's `/door/snapshot.jpg` and `/door/stream.mjpeg` by proxying the camera's own API so no credential is in a URL it hands out. The reporting half only: it answers nothing, because `q:` needs a listening socket it does not open. The phone reads these in the Things wapp (`apps/things`), which works out what a thing is from the `state:` word it used and the keys it sends, there being no capability field in this format to ask for |
-| `q:` and `s:` | not implemented; receipts exist, requests do not |
-| `via:` instead of rewriting `f:` | not implemented; a carrier currently retransmits under its own callsign, which breaks both authorship and the identifier |
+| `q:` and `s:` | **partly implemented**: `q:mail`, `q:identity` and `q:have` are answered (their own rows), receipts carry `s:`; other requests of section 8 are not |
+| `via:` instead of rewriting `f:` | **implemented**: a relay and a holder append themselves to `via:` and leave `f:` alone (the section 12.8.1 row above) |
 | Relay limit by packet type | not implemented; custody re-airs a fixed three times with no path recorded |
 | `t:track` tracks | not implemented; no track is recorded or published |
 | `t:sos` calls for help | not implemented; the current wire has an `sos` station symbol, which is a different thing and is not relayed further than any other packet |
@@ -10687,7 +10751,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `urg:` | not implemented |
 | `scope:` | `local` is enforced on the sending bearer by the app and the station firmware; `regional`, the arrival check and the unknown-word rule are specified and not yet implemented |
 | `lang:` | not implemented |
-| `nick:` and signed identity | not implemented; identity is announced unsigned today |
+| `nick:` and signed identity | **implemented**: `t:identity` is self-signed and periodic (the "Periodic `t:identity`" row below) and `nick:` feeds the names table (section 12.9.6) |
 | `t:mailbox` | **implemented**: a receiving station records verified declarations (windows and `remove:mailbox` included, `lib/services/xprs/xprs_archive.dart`), and a station now COMPOSES one naming its own archivers whenever that list changes, which is what lets a recipient send its receipt to the sender's holder (12.8.3); custody consults the declaration when choosing where to hand mail next. The ESP32 station (2026-11-08) records a declaration only once its signature held, with its identifier, `hold:` list, `since:`/`until:` and this station's place in the list (kept when not named, for routing), answers "who holds for X" by the narrowest active window (`xprsindex_holders_for`), honours `remove:mailbox r:<id>`, and asks its deep peers `kind:mailbox` every six hours (12.9.5). A web visitor's page signs `t:mailbox hold:<station>` when the station offers itself on `/api/session` (spec/API-HTTP.md) |
 | Several mailboxes with windows, and cancellation | **implemented on the receiving side** (see `t:mailbox` above); a composer states one open-ended declaration, not several windowed ones |
 | A browser visitor as a station the archiver serves (12.1, 12.7, 12.8.1, 12.8.3 step zero and step 1) | **implemented on both reference stations** (2026-11-08): a packet posted through the web page, or a key proven on `/api/session`, is a hearing on `lan` (the devices table, `hears:`, gossip with the station as gateway; L2 only for a client on the station's own network) marked internally as having come through the API, so held mail for the visitor is delivered through the page and never re-aired on the LAN; the station offers to be the mailbox of a visitor with no holder and serves them from that moment (their mail class 3 / the protected shelf), the page signs the declaration and acknowledges the mail it shows with `t:receipt s:ack`, a served visitor's outgoing mail is deposited verbatim with the station's archivers after 30 s unacknowledged, and the station's re-transmission of a visitor's packet on its radios carries `via:<station>`. Mail over HTTP is served to its two parties' sessions and the owner only |
@@ -10716,7 +10780,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `add:repost` | not implemented; the chat wapp has reactions (`add:like`) and no repost |
 | `t:place` | not implemented; nothing in the codebase reports a thing that is not the sender |
 | Avatar and description on `t:identity` | implemented: `nick:`, `file:` and `m:` from the profile, `url:` where the station serves its web chat (the server edition, from its public name), `-` to clear, split at the 250-byte packet; aired on a change and once a day, deposited with the archivers; receivers keep the newest value per field and fetch the picture with `cmd:file` for the stations they know or are showing. A NOSTR kind-0 note carries the same for NOSTR clients |
-| Section 31, airtime | not implemented as stated here, though the Reticulum side has real cadences (30 s charging, 5 min on battery) and the NOSTR side has stranger-serving budgets |
+| Section 30, airtime | not implemented as stated here, though the Reticulum side has real cadences (30 s charging, 5 min on battery) and the NOSTR side has stranger-serving budgets |
 | `t:status` | not implemented; the Social wapp has a feed, but it is NOSTR kind-1 notes over the internet and Reticulum rather than XPRS packets (`docs/social.md`) |
 | `mood:` and client theming | not implemented; nothing reads a mood and no client changes appearance for one |
 | `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, the moderator's `edit:` / `remove:message` of section 10.4.1, and `state:closed` / `state:open` of section 10.4.2, judged at the act's moment; the chat wapp's closed groups use it |
@@ -10732,7 +10796,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 15.5.2 energy readings | partly; the app keeps the latest energy readings a station reports and shows them in its station panel. Nothing sends them yet |
 | `t:challenge` and `t:response` | not implemented; no challenge exists, and a spoofed authority-issued callsign is currently undetectable |
 | Periodic `t:identity` | implemented; self-signed, aired on every active bearer at start and every 30 minutes (29.1), and `q:identity` is answered directly |
-| `since:` and `until:` | not implemented; nothing in the current wire carries an event duration, and nothing expires on its own |
+| `since:` and `until:` | **partly implemented**: as the window of `cmd:history` and the limit of mail and declarations (sections 11.2, 9.12); as the duration of an event or a notice, not yet |
 | `type:` vehicle set | partly; the current wire carries a handful of symbols and none of the rail, air or cycle values |
 | Variable-length and authority-issued callsigns | **implemented** in the app: one grammar for the shape of a callsign (`lib/services/xprs/xprs_callsign.dart`), which four files used to answer four ways, and which now carries the `/` suffix that one of them was missing, so a station announcing `G0XYZ/P` is named rather than heard and left anonymous. The ceiling is fifteen characters, set by the narrowest hop (a wapp reads `hal_identity` into sixteen bytes), and the MSP custody protocol was widened from nine to match. A callsign too wide for a frame is now REFUSED rather than truncated: a truncated callsign is not a shortened name, it is a different station, and MSP was filing carried mail under one. Still not implemented: nothing numbers a device (3.1), and `t:challenge`/`t:response` remain unbuilt, so a spoofed authority-issued callsign stays undetectable |
 | `pos:` coordinates | implemented in a different encoding |
