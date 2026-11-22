@@ -1880,6 +1880,43 @@ year and first heard today is one day old for this rule. For the same reason
 a history replay establishes nothing: the packets in it are old only by their
 own word.
 
+**A receiver that was not there asks the ones that were.** A station that
+has only just arrived has heard nothing, and by the rule above a history
+replay teaches it nothing. An impostor that happened to reach it first would
+hold the callsign on it. So an archiver states, in its directory (section
+12.9), who it heard holding each issued callsign, on lines an older reader
+skips:
+
+```
+XKEY1 CT1ABC npub1qz3n7fu9j9uenmyva7ha6x9eqwymytv2847ccv4vxdmn45y50q7h7k5f 2026-03-01_09:30:00 2026-11-21_00:00:00
+```
+
+The word `XKEY1`, the callsign, the key, when the archiver first heard that
+key hold it, and when it last heard it do so (written to the day, so a
+holder speaking again does not change the directory's hash). An archiver
+writes only what it heard ITSELF, never what another told it: repeated, one
+voice would count many times. Five hundred lines at most.
+
+A reader puts them together like this:
+
+- It takes the word of the archivers it reads directories from (section
+  12.3) and of nobody else.
+- A holder comes from testimony only when MOST of the archivers that say
+  anything live about the callsign name the same key. An even split is no
+  agreement. With one archiver, its word stands: the reader chose it.
+- The holder's seniority is the MEDIAN of the first hearings of those that
+  agree, so one archiver claiming a very early date moves nothing.
+- Testimony whose last hearing is over a year old says the callsign is free.
+  One that names a time in the future, or ends before it began, is ignored.
+- **What the reader heard itself comes first**, unless the archivers agree
+  on a holder they heard before the reader heard anybody. A station that was
+  there first is not talked out of it; one that was not takes the word of
+  the ones that were.
+
+This does not make a liar impossible, only expensive: to plant a holder it
+takes most of the archivers a station relies on, where one transmitter was
+enough before.
+
 None of this applies to `X1` to `X5`: those have exactly one key, by
 arithmetic.
 
