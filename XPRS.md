@@ -5821,6 +5821,17 @@ point exists.
   packet it is, before the mail it releases (12.8.1). A reader that receives
   a sealed message whose author it does not know asks the stations named in
   its `via:` first, nearest first.
+- **The author is told.** A station that takes a letter into this class
+  says so to its author, once, on the bearer the letter came on: a signed
+  `t:observation f:<station> d:<author> ts:<stamp> s:held r:<id>`. It is the
+  shape of the `s:mail` answer (9.12.3) with another subject, and it is an
+  observation and not a `t:receipt` on purpose: a receipt releases every
+  holder's copy (9.7.1), and this says the opposite. The author's client
+  records which stations said so and shows them with the message, which is
+  what lets a person carrying the same word from station to station see
+  where it has been left. A client may send the identical packet again at
+  another station ("repeat"): the same bytes carry the same identifier, so
+  nobody holds it twice.
 - **A notice is not a delivery.** A reader that cannot open a message yet
   does not acknowledge it: the receipt (9.7.1) releases every holder's copy,
   and a copy released before it was read is a letter lost. It acknowledges
