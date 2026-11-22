@@ -1859,6 +1859,18 @@ no arithmetic relationship to any key, and this format has no registry and
 issues no credentials. A second station can announce the same callsign with a
 different key, and both announcements will verify.
 
+**A receiver keeps every key that bound an issued callsign, and a packet from
+that callsign is good under any of them.** It does not keep only the first it
+heard: that would let whoever spoke first hold the callsign on that receiver,
+and the other station's genuine packets would be dropped as forged. A packet
+that verifies against none of the keys held is a forgery as always, and a key
+that was merely seen beside the callsign, without a signed identity packet
+binding it, is not one of them. A receiver SHOULD show that a callsign is
+bound by more than one key wherever it shows the callsign as verified,
+because "verified" then means "written by one of the keys that claim this
+callsign", which is all this format can ever say about an issued one. None
+of this applies to `X1` to `X5`: those have exactly one key, by arithmetic.
+
 | Question | Answered by |
 |---|---|
 | does the holder of this key write these packets | the signature, section 6.1 |
