@@ -5802,10 +5802,14 @@ station (9.12), and requiring it would defeat the case it matters for: a
 person reaching a rescue point leaves word for family who do not yet know the
 point exists.
 
-- **What is kept.** A sealed `t:message` its author left at the station
+- **What is kept.** A `t:message` its author left at the station
   first-hand: through the station's own page, or heard directly on a local
-  bearer with no `via:`. A relay's copy, a packet off the internet and words
-  left in the clear are ordinary custody mail (12.11) and promised nothing.
+  bearer with no `via:`. Sealed or in the clear alike: the station is
+  storage, it needs nobody's key to keep a message, and it keeps one whose
+  signature it cannot check (only a proven forgery is refused, 9.1).
+  Sealing is the writer's choice and the reader's protection, not a
+  condition of being kept. A relay's copy and a packet off the internet are
+  ordinary custody mail (12.11) and promised nothing.
   The author has to stand at the station, which is the bound on abuse: a
   station keeps a limited number from one author in a day and a limited
   share of its store for all of them, and past either limit a letter is
