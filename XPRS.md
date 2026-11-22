@@ -5793,6 +5793,42 @@ its copy the moment it hears a receipt whose signature it has verified (section
 people's undelivered mail). An archiver may refuse to carry mail at all, or
 carry it only for stations it knows (section 30.2).
 
+### 12.7.1 A station as a meeting point
+
+Two people who have never been at a station can still meet there. One arrives,
+writes to the other by callsign or by key, and leaves; the other arrives weeks
+later and reads. Nothing in that needs the recipient to have declared the
+station (9.12), and requiring it would defeat the case it matters for: a
+person reaching a rescue point leaves word for family who do not yet know the
+point exists.
+
+- **What is kept.** A sealed `t:message` its author left at the station
+  first-hand: through the station's own page, or heard directly on a local
+  bearer with no `via:`. A relay's copy, a packet off the internet and words
+  left in the clear are ordinary custody mail (12.11) and promised nothing.
+  The author has to stand at the station, which is the bound on abuse: a
+  station keeps a limited number from one author in a day and a limited
+  share of its store for all of them, and past either limit a letter is
+  custody mail again.
+- **For how long.** Its own `until:`, or a year from when it was written. In
+  12.11's order it stands with declared mail, the class kept longest.
+- **The author's identity is kept with it, and handed over with it.** `x:`
+  opens only against the author's key (6.2), and the reader may arrive long
+  after the author's last `t:identity` left every spool. A holder therefore
+  keeps the newest verified `t:identity` of each author whose mail it holds,
+  for as long as it holds the mail, serves it to whoever asks
+  (`cmd:history kind:identity only:<author>`), and airs it, as the relayed
+  packet it is, before the mail it releases (12.8.1). A reader that receives
+  a sealed message whose author it does not know asks the stations named in
+  its `via:` first, nearest first.
+- **A notice is not a delivery.** A reader that cannot open a message yet
+  does not acknowledge it: the receipt (9.7.1) releases every holder's copy,
+  and a copy released before it was read is a letter lost. It acknowledges
+  when the message opens.
+
+No field is added. A station that does none of this is still correct; it is
+simply not somewhere to leave word.
+
 ### 12.8 The gateway is the last mile
 
 Sections 12.1 and 12.6 built the outbound half: the gateway told the archiver
