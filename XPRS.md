@@ -1859,17 +1859,29 @@ no arithmetic relationship to any key, and this format has no registry and
 issues no credentials. A second station can announce the same callsign with a
 different key, and both announcements will verify.
 
-**A receiver keeps every key that bound an issued callsign, and a packet from
-that callsign is good under any of them.** It does not keep only the first it
-heard: that would let whoever spoke first hold the callsign on that receiver,
-and the other station's genuine packets would be dropped as forged. A packet
-that verifies against none of the keys held is a forgery as always, and a key
-that was merely seen beside the callsign, without a signed identity packet
-binding it, is not one of them. A receiver SHOULD show that a callsign is
-bound by more than one key wherever it shows the callsign as verified,
-because "verified" then means "written by one of the keys that claim this
-callsign", which is all this format can ever say about an issued one. None
-of this applies to `X1` to `X5`: those have exactly one key, by arithmetic.
+**An issued callsign belongs to one key, for a year after that key was last
+active under it.** This is how receivers agree on who holds a callsign that
+no arithmetic ties to a key:
+
+- The first key a receiver hears claim a callsign, in a signed identity
+  packet, holds it. Every verified packet the holder sends under that
+  callsign starts the year again.
+- While the lease runs, any other key using the callsign is an impostor. Its
+  identity packet binds nothing, and its packets under that callsign do not
+  verify.
+- After a year in which the holder was not heard, the callsign is free, and
+  the next key to claim it holds it. The former holder has no claim left.
+
+**Every time in this rule is when the receiver HEARD something, on its own
+clock, and never the `ts:` a packet carries.** `ts:` is whatever its author
+wrote. A forger can date a packet to before the real holder ever spoke, and
+if that counted, a lie about a date would buy seniority. A packet dated last
+year and first heard today is one day old for this rule. For the same reason
+a history replay establishes nothing: the packets in it are old only by their
+own word.
+
+None of this applies to `X1` to `X5`: those have exactly one key, by
+arithmetic.
 
 | Question | Answered by |
 |---|---|
