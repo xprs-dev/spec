@@ -186,6 +186,22 @@ group ranks under `active` only.
 Counts are estimates (about 13%). `sources` is how many archivers' indexes
 went into it. Fifty rows at most.
 
+`?g=<name>` asks about ONE group, an open group's name or a closed one's `X5`
+callsign: which archivers list it in their index, this station first when it
+does itself, and its row of the ranking when it has one. It is how a link to a
+group is resolved: somebody who never heard the group is sent to a station
+that keeps it.
+
+```json
+{ "ok": true, "g": "X5A3F2", "holders": ["X3PTZM", "X3ARC2"],
+  "row": { "g": "X5A3F2", "name": "Reading circle", "open": false,
+           "members": 4 } }
+```
+
+A group no index lists answers `holders: []` and no `row`, not an error: a
+private group is in no index (12.9.7) and is still reached by whoever was
+invited to it. Anything that is not a group name is `400`.
+
 ### GET /api/xprs/mail
 
 Store-and-forward: what the station holds FOR a callsign.
