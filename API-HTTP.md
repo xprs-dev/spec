@@ -507,9 +507,14 @@ this station does not host (`X5…`, section 10) returns the rows addressed to
 it that the station holds. For a closed group the rows are shown as 10.7
 displays them (what members wrote at that moment, less what moderators took
 down; an unverifiable record fails open) and the answer carries
-`group: {state, verified, name, subs, role, offer, offer_role}` (`subs`: the
-groups this one lists as part of itself, section 10.2, as `[{g, name}]`,
-present when there are any, each read by its own callsign; then the asker's
+`group: {state, verified, name, n, subs, role, offer, offer_role}` (`n`: how
+many messages the station holds for the group, all told, where the rows are
+only a page; `subs`: the groups this one lists as part of itself, section
+10.2, as `[{g, name, n}]`, present when there are any, each read by its own
+callsign, `n` again its count of held messages. A station that does not
+count leaves `n` out and the page shows no number. What is new since a
+visitor last looked is the page's own arithmetic, kept in the browser; the
+station keeps nothing per visitor; then the asker's
 place, when a session is given and the station keeps the group's record) and
 `moderation` (`removed`, and `edits`: `{id: text}`, a moderator's correction
 of each publication, 10.4.1; hosted rooms carry `edits` too). A visitor's
