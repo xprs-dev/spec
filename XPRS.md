@@ -3871,6 +3871,21 @@ person asked and was refused. Members' clients do not show it (the author is
 not on the roster); the admin's and the moderators' show it as a request, and
 accepting it is a `grant:`, which the person then accepts (10.3.1).
 
+**A request must be able to find the admin.** The station that receives it
+may hold no roster for the group, and then has nobody to address. So the
+group's `t:identity`, which the admin signs as the group, carries `lx:` (the
+field a beacon uses for the same thing, 3.1): the delivery address of the
+device that holds the group's key. A station that holds that record
+addresses the group's callsign there, beside the moderators it knows from
+the roster and its own archivers, which keep the request for an admin who is
+away. Nobody without the group's key can name that address. A station
+passes on a non-member's message to a group at most three times a day per
+person and group; it may keep more, it does not forward them.
+
+```
+t:identity f:X5A3F2 ts:2026-11-23_14:00:00 k:npub1... nick:Gulf lx:5463d9bc93aebda57d1f704a3cfbee80 sig:<60 characters>
+```
+
 ### 10.3.1 Nobody is a member without saying so
 
 A grant is an **offer**. It confers nothing until the person named signs an
