@@ -1699,6 +1699,21 @@ identities a gateway keeps. A station that does not want to give a spot can give
 a region: a town's centre to two decimals, or a country's centre with no decimals
 and the country's radius in `acc:`.
 
+A person who is carried about says it here too, as coarsely as they like, with
+the digits past that hidden (section 6.2.1):
+
+```
+t:identity f:X1QZ3N ts:2026-11-24_18:00:00 nick:Ana pos:38█████,-9█████ acc:100000 sig:<60 characters>
+```
+
+The bars say there is more and the readable digits say which square: this is
+somewhere between 38 and 39 north, 9 and 10 west. The identity carries the bars
+WITHOUT `xr:`. What fills them changes with every step and travels in the
+station's beacon (section 15.6), for whoever was given the code; the square
+changes when its owner crosses into another, which is as rare as a decoration
+should be. Bars with no `xr:` in the packet are read like any others, dropped,
+and nothing is restored.
+
 ```
 t:identity f:X3VGAZ ts:2026-11-14_09:00:00 nick:bench pos:40,-8 acc:171000 sig:<60 characters>
 ```
@@ -7859,6 +7874,18 @@ uncertainty separately in `acc:`.
 Absence of `pos:` means the position is unknown. It does not mean zero. `0,0`
 is a valid coordinate in the Gulf of Guinea.
 
+**A position with hidden digits is a square, not its corner.** Bars in `pos:`
+(section 6.2.1) cut the value short, they do not round it: `38█████,-9█████`
+parses as `38,-9` and means any point from 38 to 39 north and 9 to 10 west,
+`-0█████` any latitude from 0 down to 1 south. A reader that draws it places
+it at the middle of that square (38.5,-9.5) and shows the square; one that
+measures a distance from it uses the middle. Each readable decimal is a
+square ten times smaller: none is about 100 km, one 10 km, two 1 km, three
+100 m. `acc:` states the same size in metres for a reader that does not look
+at the bars. The hidden digits are the rest of the fix to four decimals, and
+the author's value is a prefix of them, so the square is the same on every
+airing and nothing is learnt from hearing it a hundred times.
+
 ### 15.2 Movement
 
 | Key | Type | Meaning | Quantity |
@@ -10951,7 +10978,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | Section 12.8, sealed-mail release to a hearing gateway | **specified, not implemented**; the nearest live relatives are the chat iGate mailbox (mail pulled from APRS-IS by an in-range station) and MeshStore custody, neither of which is driven by a published `hears:` claim |
 | Section 12.9, `serve:archive` and the XDIR1 directory exchange | **implemented** (2026-11-08): the Dart core composes the XDIR1 listing from what it archives (plus the visitors it serves), holds it in its file store, names it in a signed `t:service f: serve:archive count: file:<ref>.xdir [dial:] [room:]` every ten minutes when the digest changed, and consumes a named archiver's directory once per digest into bounded pointers; a `cmd:history` miss answers `code:404 m:try` naming the callsign's HOLDERS (verified declarations) first, then the directory's keepers, then who heard it. The ESP32 station keeps the same listing (`GET /api/xprs/dir`, host-tested render) but cannot answer `cmd:file` on the radio, so its announcement carries no `file:` (12.9.4) and the ask form carries the load; its miss names holders before hearers too |
 | Section 12.9.6 finding by name (people, stations, groups; bulk gossip of 12.9.4) | **implemented** on the Flutter side (2026-11-17): a station asks its named and always-on archivers `cmd:history kind:identity since:<mark>` (a persisted mark per archiver, a year back the first time, every thirty minutes, at once when somebody searches); every verified identity it stores, heard or replayed, enters a names table the chat wapp's Search reads, so a group announced across the internet is found by its name on a device that never heard it. A responder now serves every group's `t:identity` in an untargeted answer and holds back only a hosted room not shared with the asker (10.10.1); it used to strip them all. The ESP32 station does not keep a names table |
-| Section 6.2.1, redacted packets (`xr:`) | **implemented**: the composer parses `((...))`, derives the slow key and builds the bars and the `xr:` blob in the core (`XprsCrypto.redact/restore`, `hal_xprs_redact`/`hal_xprs_unlock`), and a reader opens one at a tap, the passphrases that worked being remembered in the profile's encrypted store. Chat composes a redacted message in a 1:1, a closed group and the Local room; the wire is addressed there and scoped (`scope:local`) here. What is not implemented is redaction of the FIELDS the table permits (`pos:`, telemetry, `title:`): only `m:` is marked today |
+| Section 6.2.1, redacted packets (`xr:`) | **implemented**: the composer parses `((...))`, derives the slow key and builds the bars and the `xr:` blob in the core (`XprsCrypto.redact/restore`, `hal_xprs_redact`/`hal_xprs_unlock`), and a reader opens one at a tap, the passphrases that worked being remembered in the profile's encrypted store. Chat composes a redacted message in a 1:1, a closed group and the Local room; the wire is addressed there and scoped (`scope:local`) here. A station's own position is redacted too (`xprs_shared_position.dart`): the beacon carries `pos:` with the digits past the owner's range as bars and `xr:` under the owner's code, the identity the bars alone (6.3.2), and a reader holding the code opens it (`XprsPosUnlock`). What is not implemented is redaction of the other FIELDS the table permits (telemetry, `title:`) and of `pos:` in a message a person writes |
 | Section 14.7, working-channel invitations | **specified, not implemented** as packets; the dance itself ships in binary for one pair of bearers, the WiFi-Direct negotiation (BLE subtype `0x57` ADVERT/REQ/OFFER, `docs/ble5.md`) coordinates exactly this move from the shared advert channel to a private fast lane, and 14.7 is that handshake generalised to every bearer, in text, signed |
 | Section 3.1, one person on several devices | **specified, not implemented.** Nothing numbers a device today: a station wears its bare callsign, and the chat wapp matches `d:` against that alone. The pieces the rule needs are already on the air, a beacon carries `f:` and `lx:`, so a device can see a sibling and tell it apart, but no code adopts a suffix, prefers the conventional number for its `type:`, or refuses a command addressed to a person |
 | Section 9.7.1, receipts signed by default | **specified, not implemented.** Signing exists (section 6.1) and receipts do not use it yet, which leaves the forged-`s:ack` deletion described there open on any station that honours the section 8 carrier release. The Reticulum side is not exposed to it, its acknowledgement is a link, not an XPRS packet, but an XPRS-native carrier would be |
