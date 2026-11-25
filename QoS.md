@@ -59,7 +59,7 @@ adjustable; the numbers are.
 | **rolling hour** | the last sixty minutes, measured continuously, not the clock hour |
 | **owner traffic** | packets this station signs itself, and packets from one of its owners (`owner:` / `own1`..`own4`) handed to it directly |
 | **third-party traffic** | everything else this station relays or bridges |
-| **periodic packet** | a packet whose content is mostly "I am still here": `observation`, `service`, `status`, `identity`, a position beacon, a bridged node's announcement |
+| **periodic packet** | a packet whose content is mostly "I am still here": `observation`, `service`, `identity`, `track`, a bridged node's announcement. Not `status`: XPRS.md counts it as presence for archiving, but it carries a person's words and each one is new |
 | **admit** | accept a packet into a bearer's queue |
 | **shed** | decide not to transmit a packet on this bearer; it is not an error and nothing is owed to its sender |
 
@@ -152,10 +152,10 @@ profile names which classes it admits.
 |---|---|---|
 | **L0 life** | `sos`, `warning` | always |
 | **L1 owner** | owner traffic (2) | always |
-| **L2 conversation** | `message`, `receipt`, `reaction`, a direct message | always, subject to scope |
+| **L2 conversation** | `message`, `status`, `receipt`, `reaction`, a direct message | always, subject to scope |
 | **L3 transaction** | `command`, `result`, `request` | only when the destination `d:` was heard on this bearer and not on a cheaper one |
 | **L4 keys** | `identity` | under the repeat rule of 4.5 |
-| **L5 presence** | `observation`, `service`, `status`, position beacons | under the repeat rule of 4.5 |
+| **L5 presence** | `observation`, `service`, `track` | under the repeat rule of 4.5 |
 | **L6 bulk** | history replays, `file` chunks, `mailbox` catch-up, anything whose `ts:` is older than the profile's freshness limit | only when the budget is mostly unspent (4.7) |
 
 Further, whatever the class:
@@ -196,6 +196,13 @@ dropped, not queued.**
 - Messages, receipts, commands, results and requests are never "repeats" in
   this sense: each is a new packet, and duplicates of one are the 9.2 ring's
   business.
+- A scheduler's own drift is not a repeat: a beacon on a 300 s timer that
+  fires a fraction of a second early is on time. Reference: 5% of the
+  interval.
+- The rule holds for copies still waiting too: a queue keeps one copy of a
+  packet and one periodic packet per author and type. Two copies of the same
+  identity heard over two relays before the first is aired are one
+  transmission, not two.
 
 Reference: the table above; thresholds 8 stations, 25% utilisation.
 
@@ -222,11 +229,18 @@ arrives into that silence.
 
 - No more than one tenth of the budget is spent in any six minutes, except by
   L0 and L1.
+- Keys, presence and bulk (L4-L6) may use only the first half of that pace;
+  the second half is always there for conversation and transactions. The
+  airing order of 4.3 sends the oldest `ts:` first, and a replayed history
+  page or a re-said identity is old by construction: without this, the
+  replay harness measured fresh messages waiting five minutes behind them.
+  Eligibility, not order, is what changes, as with fair share.
 - **Spare capacity is used, not wasted.** L6 bulk is admitted only while more
   than 60% of the budget is unspent and the channel is not crowded; it is the
   first traffic shed as the hour fills.
 
-Reference: one tenth per six minutes; bulk above 60% unspent.
+Reference: one tenth per six minutes, half of it for L4-L6; bulk above 60%
+unspent.
 
 ### 4.8 Expiry and eviction
 
@@ -304,6 +318,17 @@ for all; only these values differ.
 - **Bounded memory.** Tables (repeat intervals per author, fair-share
   accounts, the aired ring) have fixed sizes chosen per platform, and evict
   their least recently used rows.
+- **An exact ledger.** The hour and the six-minute pace are measured over the
+  transmissions themselves, not over minute buckets: a window that starts at
+  a minute boundary misses up to a minute of earlier sends, which the
+  harness showed as 61 s spent in six minutes against a limit of 36.
+
+Implementations:
+
+| Code base | Component | Harness |
+|---|---|---|
+| XPRS core (Dart: the app and the Linux server) | `lib/src/services/xprs/xprs_qos.dart` | `test/xprs_qos_test.dart`, `test/xprs_qos_replay_test.dart`, traces made by `tool/qos_trace.py` |
+| Station firmware (C) | not yet: today `lr_worth` and `nrf_hears` apply part of 4.4 and 4.5 | |
 
 ## 8. The test harness
 
