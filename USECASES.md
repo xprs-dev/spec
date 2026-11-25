@@ -318,3 +318,28 @@ under a name nobody issued. The station signs, never seals, and drops
 what it cannot legally transmit rather than repeating it for somebody
 else, because the licence answers for the bridge and not for the
 sender.
+
+
+## K. Doing what APRS does
+
+### 58. Give an APRS user everything they are used to, built our way
+Whatever a radio amateur relies on APRS for has a counterpart in XPRS,
+redesigned to fit how XPRS works rather than copied from APRS:
+
+- **Digipeating.** Any station can repeat what it hears on the same
+  radio, so a packet hops past a hill. Each station repeats a packet
+  once, adds its name to the path, and stops when the hop limit set by
+  the sender is spent. There are no fixed digipeaters and no paths to
+  configure: any station can relay, within the limits its owner sets
+  (see 7).
+- **iGates.** A station with both a radio and the internet carries what
+  it hears up to the internet. It brings messages back down only for
+  users it heard locally, so internet traffic never floods a radio
+  channel (see 18, 19).
+- **APRS-IS.** There are no central servers that everybody has to
+  trust. The archives on Reticulum together are the worldwide feed:
+  anybody can ask about a callsign or an area and get an answer they
+  can check, from the stations that actually heard it (see 27-30).
+
+Somebody coming from APRS should find nothing missing, even where it
+works differently underneath.
