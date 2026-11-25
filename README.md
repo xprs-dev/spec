@@ -8,6 +8,9 @@ internet.
 The specification is [XPRS.md](XPRS.md); every section is linkable, as
 [XPRS.md#3-callsigns](XPRS.md#3-callsigns). [API-HTTP.md](API-HTTP.md)
 specifies the HTTP interface stations offer on their LAN.
+[USECASES.md](USECASES.md) lists what XPRS must be able to do, the yardstick
+for whether the specification and its implementations are heading the right
+way.
 
 Rendered: <https://xprs.dev/spec> for the specification,
 <https://xprs.dev/spec/api-http.html> for the HTTP API. Both are generated
