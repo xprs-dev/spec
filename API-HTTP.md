@@ -124,6 +124,10 @@ Query parameters, all optional:
 - `since`, `until` -- epoch seconds, or the packet timestamp form
   `YYYY-MM-DD_hh:mm:ss` (XPRS.md section 4.3). Both accepted everywhere.
 - `only` -- one packet type name (`message`, `observation`, `status`, ...).
+- `kind` -- packet type names separated by commas (`identity,message`). A
+  visitor reads conversation and identities; `service` (XPRS.md 12.9, who
+  serves what) only when named here, never in the default listing. It is how
+  a browser with no station of its own finds archivers to keep its mail.
 - `call` -- only packets FROM this callsign (base form matches suffixed).
 - `dir` -- `in` (heard) or `out` (this station transmitted it).
 - `room` -- `local`, `regional` or `global`: one chat room (XPRS.md 9.11),
