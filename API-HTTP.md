@@ -114,6 +114,9 @@ the `t:service serve:` announcement (XPRS.md sections 24 and 36).
   `library` rooms (below). `page.gallery: true` is the same, its first name.
   A board on its own flash leaves both out, and the page shows the Gallery,
   Music and Library disabled there.
+- `page.place: {"pos": "49█████,8█████", "acc": 100000}` is where the station
+  says it is, exactly as it airs it (`pos_share`, `pos_range` below): the
+  square, never the point. Absent when it shares none.
 
 ### GET /api/xprs/history
 
@@ -433,6 +436,14 @@ signed by another key is not the administrator.
 - `set` with `"settings": {...}`: the administrator changes settings. Unknown
   names or values are refused (400) and nothing changes.
 - `release`: the administrator gives the station up; it is claimable again.
+- `locate`: the station asks its owners' phones in reach where they are
+  (XPRS.md 8, `t:request d:<owner> q:pos`, signed); a phone answers a station
+  its owner owns with its own fix. The answer, taken only from a phone asked,
+  signed by its key and within two minutes, becomes `pos_at`; sharing stays
+  as chosen. Answered with the state at once (`pos_asking: true` while it
+  waits), 409 when no owner's phone is in reach or the station cannot ask.
+  A station that can reports `pos_locate: true` in its settings, and saying
+  yes to `pos_share` with no `pos_at` asks once by itself.
 - `appoint`, `dismiss`, `lift` with `"call": "<callsign>"`: on a station whose
   rooms are moderated (XPRS.md section 10.10), the station signs, as itself,
   `grant:<call> role:mod` (appoint) or `grant:<call>` (dismiss a moderator, or
@@ -473,10 +484,11 @@ Each answers with the state, as GET does. The settings:
 | `follow` | callsigns or `npub1…` keys, space-separated, at most 64 | empty | whose words are kept from anywhere and fetched from their own station across the internet |
 | `peers_mode` | `open`, `named`, `mesh` | `open` | `named`: records are exchanged only with `peers`; another station asking for history gets this station's own publications only, and an alert or a post heard on the air is kept only when its author or a station in its `via:` is a peer |
 | `peers` | station callsigns, space-separated, at most 32 | empty | the trusted stations of `peers_mode: named` |
-| `pos` | `lat,lon` in degrees, at most 5 decimals, or empty | empty | where the station says it is: carried in its beacon as `pos:` (XPRS.md 15.1, the decimals being the precision claimed), ahead of any GPS or owner setting; the page sets it from a spot coarsened to a radius, or from a country (its centre) |
-| `acc` | metres, 0 to 3000000 | `0` | how far from `pos` the station may be, carried as `acc:` when not 0 (a country's radius, the radius a spot was coarsened to) |
+| `pos_share` | true, false | false, and unchosen | whether the station says where it is: the same choice as a phone's Settings > Location, one setting whichever screen makes it. Nothing is aired until its administrator says (`pos_chosen` reports whether they have); a station never shares by default |
+| `pos_at` | `lat,lon` in degrees, at most 5 decimals, or empty | empty | the station's exact point, kept on the station and never aired nor shown to a visitor |
+| `pos_range` | metres: `100000`, `10000`, `1000`, `100` or `10` | `100000` | how much everyone may read: the beacon and the identity carry the square of that size that holds `pos_at`, its digits past the range barred (XPRS.md 6.2.1, 15.1: `49█████,8█████` with `acc:100000`) |
 | a host switch, e.g. `auto_update` | true, false | the host's | a switch the station's program defines and reads for itself; only a station that has it reports it in `settings`, and one that has not refuses the name (400). The server edition's `auto_update`: look for a newer release every six hours and install it (its `update` command and timer) |
-| `page_<name>` | text, at most 8000 characters | unset | what the web chat page defines for itself and its administrator writes: the station stores the string as given and reports it as `page.<name>` on `/api/services`; set to empty it is gone. The page uses `page_banner` (HTML under the header), `page_css` (a stylesheet of its own), `page_logo` (HTML in place of the logo) and `page_pos` (the station's location as `lat,lon,radius_km`, snapped by the page to the centre of a square of that radius before it is saved, so the exact place never reaches the station; `0` is exact); a station need know none of these |
+| `page_<name>` | text, at most 8000 characters | unset | what the web chat page defines for itself and its administrator writes: the station stores the string as given and reports it as `page.<name>` on `/api/services`; set to empty it is gone. The page uses `page_banner` (HTML under the header), `page_css` (a stylesheet of its own), `page_logo` (HTML in place of the logo); a station need know none of these. An older page's `page_pos`, `pos` and `acc` become `pos_share`, `pos_at` and `pos_range` once, at the next range up (25 km is 100 km) |
 
 ### GET /api/rooms, POST /api/rooms
 
