@@ -318,17 +318,23 @@ for all; only these values differ.
 - **Bounded memory.** Tables (repeat intervals per author, fair-share
   accounts, the aired ring) have fixed sizes chosen per platform, and evict
   their least recently used rows.
-- **An exact ledger.** The hour and the six-minute pace are measured over the
-  transmissions themselves, not over minute buckets: a window that starts at
-  a minute boundary misses up to a minute of earlier sends, which the
-  harness showed as 61 s spent in six minutes against a limit of 36.
+- **A ledger that never under-counts.** The hour and the six-minute pace are
+  measured over the transmissions themselves, or over buckets that round the
+  safe way: a bucket that has only partly left the window still counts in
+  full, so a limit may bind a few seconds early and never late. What is not
+  allowed is a window that starts at a bucket boundary and drops a bucket
+  that is still partly inside it: that misses up to a bucket of earlier
+  sends, which the harness showed as 61 s spent in six minutes against a
+  limit of 36. A host with memory to spare keeps the exact list; a
+  microcontroller keeps buckets (ten seconds for the pace, a minute for the
+  hour, ten minutes for the fair-share accounts).
 
 Implementations:
 
 | Code base | Component | Harness |
 |---|---|---|
 | XPRS core (Dart: the app and the Linux server) | `lib/src/services/xprs/xprs_qos.dart` | `test/xprs_qos_test.dart`, `test/xprs_qos_replay_test.dart`, traces made by `tool/qos_trace.py` |
-| Station firmware (C) | not yet: today `lr_worth` and `nrf_hears` apply part of 4.4 and 4.5 | |
+| Station firmware (C: ESP32 and nRF52 stations) | `common/xprs_bearer/xb_qos.c`, attached to the LoRa bearer with `xb_set_qos` | `common/xprs_bearer/test_xbqos_host.sh`, `common/xprs_bearer/test_xbqos_replay_host.sh` (the same trace) |
 
 ## 8. The test harness
 
