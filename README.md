@@ -8,6 +8,8 @@ internet.
 The specification is [XPRS.md](XPRS.md); every section is linkable, as
 [XPRS.md#3-callsigns](XPRS.md#3-callsigns). [API-HTTP.md](API-HTTP.md)
 specifies the HTTP interface stations offer on their LAN.
+[QoS.md](QoS.md) sets how a station shares a constrained bearer's airtime:
+what it admits, in what order, the owner's reserve and what it drops.
 [USECASES.md](USECASES.md) lists what XPRS must be able to do, the yardstick
 for whether the specification and its implementations are heading the right
 way.
