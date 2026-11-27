@@ -49,6 +49,16 @@ while that station was switched off or asleep.
 Keep a message addressed to a user it cannot reach right now, and hand
 it over as soon as that user comes back into range.
 
+This is the use case XPRS is valued for, and it must always work over
+Bluetooth alone. Any station in reach keeps the message: a box left in
+the room, somebody else's phone, an archiver or not. The writer may
+leave; the person it was for gets it on arriving, without doing
+anything, and sees it once however many stations held it. Their
+"delivered" and "read" receipts travel back the same way, kept by any
+station for up to three days, so the writer learns it arrived and stops
+sending it. A station limits how much it keeps from any one sender, so a
+flood of invented callsigns cannot push out the mail already waiting.
+
 ### 11. Repeat a message for people who just arrived
 After a quiet spell, repeat one stored message, so somebody who walked
 into range a moment ago still hears it.
