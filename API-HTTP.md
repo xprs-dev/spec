@@ -426,6 +426,13 @@ signed by another key is not the administrator.
   address (RFC 1918, loopback, link-local, IPv6 unique-local), or an address in
   one of the IPv6 prefixes the station itself holds.
 - `claimable` is true when there is no administrator and the asker is local.
+- `public_moderators` (with or without a session) lists the `npub`s whose
+  removals this station honours in the Regional and Global rooms (XPRS.md
+  10.10.3); empty when its operator turned that off. A visitor whose own key
+  is listed signs `t:moderate f:<callsign> ts:<now> r:<id> remove:message`,
+  with no `d:`, and posts it to `/api/xprs/send`; anybody else's is refused
+  with 403. Removed identifiers are in `moderation.removed` on
+  `/api/xprs/history`, as a station moderator's are.
 
 `POST /api/admin` with JSON `{"action": ..., "session": "<token>"}`:
 

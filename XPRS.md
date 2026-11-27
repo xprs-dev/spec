@@ -4406,6 +4406,61 @@ packet, and the author may withdraw it:
 is about the station's own surroundings. A `t:sos` is never refused by this
 rule (section 10.7).
 
+### 10.10.3 Moderators of the public rooms
+
+The Regional and Global rooms (section 9.11.1) belong to no station and no
+group, so nothing above gives anybody authority in them. An implementation
+may take that authority from **a published list of keys**. The reference
+binaries do: `https://xprs.dev/moderators.json`,
+
+```json
+{ "moderators": [
+  { "npub": "npub1watt585dqju7agda06973etnhyad6n9l6wy2heamr0mxw0nmgl5sdrsnac" }
+] }
+```
+
+Each entry is a full `npub`, because a derived callsign can be searched for
+and a key cannot; `since` and `until` (a date such as `2026-11-27`, or a full timestamp)
+bound the days it is listed for. The list is a plain file. Whoever trusts the
+place it is published trusts the list, and nothing on the wire depends on it.
+
+**A listed moderator removes a message with the act section 10.4.1 already
+has, addressed to nobody:**
+
+```
+131  t:moderate f:X1WATT ts:2026-11-27_14:26:40 r:89a9c8 remove:message sig:<60 characters>
+```
+
+No `d:`, because there is no group; the signature under a listed key is the
+whole of the authority, whatever callsign `f:` carries. A station that honours
+the list:
+
+- **drops the message** it names, with its corrections, from what it keeps,
+  serves and shows, and refuses a copy that arrives later (the tombstone of
+  section 7.8.2);
+- **keeps the act as the room's record** and hands it on with the room
+  (`cmd:history kind:message,moderate`, section 11.2), so a station that was
+  away takes the message down when it catches up;
+- **judges the act at its own `ts:`** (section 10.4): an act dated outside the
+  entry's `since` and `until`, or more than five minutes ahead of the
+  station's clock, is nobody's.
+
+What it cannot do is as much the rule as what it can:
+
+- **Removal only.** `hide:`, `edit:`, `revoke:`, `grant:` and `state:` without
+  a `d:` mean nothing. Nobody is sent away from a public room.
+- **Only a `t:message` said beyond the Local room.** The Local room is its
+  station's (section 10.10); `t:sos`, `t:warning` and `t:info` are other types
+  and are never reached (section 10.7); mail and a group's traffic have a
+  `d:` and are not undirected.
+- **Nobody is bound.** The act is an ordinary signed packet. An implementation
+  that reads no list, or an operator who turns the switch off, relays and
+  stores it like any other and removes nothing. A station that honours a
+  different list honours that one.
+
+A station with no route to the published list uses the one its build carries,
+and replaces it whenever the published one is read.
+
 ---
 
 ## 11. Commands
@@ -11051,6 +11106,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, the moderator's `edit:` / `remove:message` of section 10.4.1, and `state:closed` / `state:open` of section 10.4.2, judged at the act's moment; the chat wapp's closed groups use it |
 | Correcting and withdrawing, sections 7.8 and 10.4.1 | **implemented**: `edit:` and `r:<id> remove:message` for 1:1, closed groups, rooms, Status and Alerts; archivers purge a verified withdrawal and keep a tombstone; the courier releases a carried copy only on a verified one |
 | A station's own rooms, section 10.10 | **implemented** in the core's `WebChatApi` and the web chat: an administrator who proved their key, moderators appointed with `role:mod` and accepting, `remove:message` and `revoke:` [`until:`] signed in the browser, lifting by the station's grant; the boards do not have it yet |
+| Moderators of the public rooms, section 10.10.3 | **implemented** in the core (`XprsPublicModerators`), the server edition and the web chat: the list from `xprs.dev/moderators.json` (a copy in the build, refreshed when an uplink comes up, at most every twelve hours), a listed key's undirected `r:<id> remove:message` judged in the receive funnel, the archive's delete and tombstone, the act kept and asked for with the room, and Delete in the page's message menu for a visitor whose key is listed. Not yet in the app's Chat wapp (the archive drops the message; a row Chat already drew stays until it is refilled) nor on the boards |
 | Subgroups, `role:sub` nested five levels deep | not implemented; the chat wapp has a sub-room tree, but on NOSTR rooms and with authority inherited down the tree rather than stopping at each key |
 | Never filtering `sos`, `warning` and `info` by membership | not implemented; there is no membership filter to exempt them from |
 | The chat wapp's NOSTR rooms | **a second design, kept for NOSTR**: NIP-72 rooms with a kind-9078 op-log and authority from the room event's author (`docs/chat-rooms.md`). The wapp's XPRS closed groups use section 10 itself; the NOSTR rooms are not reconciled with it |
