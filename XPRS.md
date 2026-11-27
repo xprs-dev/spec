@@ -4458,8 +4458,10 @@ What it cannot do is as much the rule as what it can:
   stores it like any other and removes nothing. A station that honours a
   different list honours that one.
 
-A station with no route to the published list uses the one its build carries,
-and replaces it whenever the published one is read.
+The reference binaries carry no key of their own: the list is read from where
+it is published and from nowhere else, so a build cannot hold a different
+answer. A station keeps the copy it last read and uses it while the site is
+out of reach; one that has never read it honours nobody.
 
 ---
 
@@ -11106,7 +11108,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, the moderator's `edit:` / `remove:message` of section 10.4.1, and `state:closed` / `state:open` of section 10.4.2, judged at the act's moment; the chat wapp's closed groups use it |
 | Correcting and withdrawing, sections 7.8 and 10.4.1 | **implemented**: `edit:` and `r:<id> remove:message` for 1:1, closed groups, rooms, Status and Alerts; archivers purge a verified withdrawal and keep a tombstone; the courier releases a carried copy only on a verified one |
 | A station's own rooms, section 10.10 | **implemented** in the core's `WebChatApi` and the web chat: an administrator who proved their key, moderators appointed with `role:mod` and accepting, `remove:message` and `revoke:` [`until:`] signed in the browser, lifting by the station's grant; the boards do not have it yet |
-| Moderators of the public rooms, section 10.10.3 | **implemented** in the core (`XprsPublicModerators`), the server edition and the web chat: the list from `xprs.dev/moderators.json` (a copy in the build, refreshed when an uplink comes up, at most every twelve hours), a listed key's undirected `r:<id> remove:message` judged in the receive funnel, the archive's delete and tombstone, the act kept and asked for with the room, and Delete in the page's message menu for a visitor whose key is listed. Not yet in the app's Chat wapp (the archive drops the message; a row Chat already drew stays until it is refilled) nor on the boards |
+| Moderators of the public rooms, section 10.10.3 | **implemented** in the core (`XprsPublicModerators`), the server edition and the web chat: the list from `xprs.dev/moderators.json` (read when an uplink comes up, at most every twelve hours; the last copy read is kept, none is in the build), a listed key's undirected `r:<id> remove:message` judged in the receive funnel, the archive's delete and tombstone, the act kept and asked for with the room, and Delete in the page's message menu for a visitor whose key is listed. Not yet in the app's Chat wapp (the archive drops the message; a row Chat already drew stays until it is refilled) nor on the boards |
 | Subgroups, `role:sub` nested five levels deep | not implemented; the chat wapp has a sub-room tree, but on NOSTR rooms and with authority inherited down the tree rather than stopping at each key |
 | Never filtering `sos`, `warning` and `info` by membership | not implemented; there is no membership filter to exempt them from |
 | The chat wapp's NOSTR rooms | **a second design, kept for NOSTR**: NIP-72 rooms with a kind-9078 op-log and authority from the room event's author (`docs/chat-rooms.md`). The wapp's XPRS closed groups use section 10 itself; the NOSTR rooms are not reconciled with it |
