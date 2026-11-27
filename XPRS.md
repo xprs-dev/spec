@@ -6255,13 +6255,17 @@ things cross:
 | the directory file (section 12.9) | which callsigns deposit where, and when each was last heard |
 | the archiver's own `t:observation`, with `hears:` | which stations are at its ear now, and how fresh that claim is |
 | `t:mailbox hold:` declarations, verbatim | which stations chose which archiver to hold their mail |
+| what is said in the Global room, and the room's upkeep (section 12.9.8) | what everybody, at any archiver, is reading now |
+| the record of a file an archiver holds (section 12.9.2) | where a file can be fetched, by its hash alone |
 
 The last three ARE the gossip of section 12.9.4, reachability carried by packets
 that already existed. Each is signed by its author, so a relaying peer can
 neither forge nor retarget it, and a reader weighs its `ts:` for itself.
 
 **What does not cross is the store as a store.** Archivers do not synchronise
-message archives wholesale; the directory exists precisely so they need not,
+message archives wholesale (the Global room is the one conversation they all
+carry, section 12.9.8, and it crosses packet by packet under each archiver's
+own admission); the directory exists precisely so they need not,
 and a reader who wants a callsign's words asks the archiver the directory names
 (12.6). The one temporal fact that flows unasked is the last-heard timestamp
 riding each directory line. Records an archiver ASKED for, under the three
@@ -6295,7 +6299,23 @@ routes callsigns (section 12.9). A holder advertises each file it keeps as a
 signed provider record, the hash then the holder, verifiable against the
 holder's key like every other claim; large archivers exchange those records
 among themselves the way they exchange the callsign directory, so a hash
-learned anywhere resolves to a holder somewhere. A `q:have` addressed to an
+learned anywhere resolves to a holder somewhere. The record is the packet a
+shared folder already uses to state a file (section 7.7.7), from the holder
+and addressed to nobody:
+
+```
+t:file f:X3ARC1 ts:2026-11-27_21:40:02 file:qA7dTf2mWx9bK4pZcV0yLuJ3gRhN8sE5iDoQ6vXaB1M.png size:40960 sig:<60 characters>
+```
+
+One per file, made when the bytes land in the holder's store, at a bounded
+rate (reference: 20 a minute; what was not said is still found by asking).
+It carries a reference and no bytes, so it is told from a piece of a file
+(section 7.7.6) by having neither `off:` nor `b:`. It crosses between
+archivers as section 12.9.8 describes and is asked for with `kind:file`. An
+archiver that takes one notes the holder against the hash (reference: at most
+8 holders a file, the oldest notes dropped past a cap). The record says where
+bytes are, never that they are public: the holder still refuses a `cmd:file`
+its own rules do not allow. A `q:have` addressed to an
 archiver (section 8.1: a broadcast one it cannot answer it leaves alone) that
 it cannot answer from its own store it answers from that index, `code:404`
 naming holders in `m:try` the way a `cmd:history` miss names them. Small archivers do not carry
@@ -6656,6 +6676,74 @@ one who trusts it (section 12.3). A group's admin can grow its own roster
 with callsigns that cost nothing; posters and joins are reported beside
 members so that a crowd of silent names is visible as one. Nothing is added
 to the wire.
+
+### 12.9.8 The Global room is one conversation: handing on
+
+Section 12.12.2 makes the archiver the meeting place of public traffic:
+stations push what they publish to the archivers they chose and pull the rest
+from them. Between two archivers that pull is the catch-up of section 12.10.1,
+and between two always-on machines it settles at ten minutes. Measured on
+three server stations joined only by Reticulum (2026-11-27): a message said in
+the Global room at one was read at the next up to ten minutes later; where a
+person's mailbox is was not known at the other archivers for as long, so mail
+written to her at one of them was deposited with the wrong station; and a
+moderator's removal (section 10.10.3) stood at one archiver and not at the
+next.
+
+So an always-on public archiver **hands on what it takes first-hand**. A
+packet is first-hand when it came from a visitor of the archiver's own page,
+from its own radio, from a station that deposits with it (section 12.3), or
+is the archiver's own. It hands a copy, at once, on a directed lane, to the
+other always-on archivers it knows (reference: at most 16).
+
+**What is handed on.** Publications, a packet with no `d:`, whose `scope:`
+reaches the whole network (section 9.11: `global`, a country list, or none),
+of these types:
+
+| type | why |
+|---|---|
+| `message`, `reaction` | the Global room's talk |
+| `moderate` with no `d:` | a removal in the public rooms (section 10.10.3) |
+| `mailbox` | who chose which archiver (section 12.9.5), so mail is routed right the first time |
+| `identity` | the key that lets the next archiver check everything else its author says; at most one per author an hour |
+| `file` with no `off:` and no `b:` | which archiver holds which file (section 12.9.2) |
+
+**What is never handed on.** Anything said with `scope:regional` or
+`scope:local`: the Regional and Local rooms belong to the archiver they were
+said at and to the stations in its range, and no archiver serves them out of
+range either, on any door (section 9.11). And mail: a packet with `d:` moves
+under custody (sections 12.7, 12.8), toward its recipient and nowhere else.
+
+**It cannot loop and it cannot flood.** The copy handed on carries the
+archiver's callsign in `via:` (outside the signature and the identifier,
+section 4.9). An archiver that receives, over the internet, a publication
+already carrying a `via:` takes it and does not hand it on: it is somebody's
+hand-on already. So a packet crosses one archiver-to-archiver hop, and the
+archivers form a mesh in which each speaks for what it took itself. Further:
+each packet is handed on once per archiver (remembered by its identifier);
+only a packet whose `ts:` is within ten minutes is (a replayed month is
+history, and history is asked for); and only a packet whose signature the
+archiver checked, since handing on unchecked packets would make every archiver
+an amplifier for whoever can reach one of them.
+
+**This is not an import.** Section 12.9's three conditions are kept in
+substance. Every record is an original verifying on its author's key, and
+every record passes the receiving archiver's own admission: its policy, its
+quotas, its scope rules, its moderators' removals. What changes is who starts
+the exchange: for these few types and this one conversation, the archiver that
+has the news speaks first. An archiver that does not want the Global room
+turns off following the rooms, and the copies it is handed are not kept.
+
+**The pull stays, as the repair.** A hand-on is one unacknowledged packet
+(section 12.12.2's directed lane); an archiver that was unreachable when it
+left gets the same records on its next catch-up, which between archivers asks
+for `kind:message,moderate,mailbox,file`.
+
+**Being told about a packet is not hearing its author.** A station that takes
+a handed-on or replayed packet learns what its author said, not that its
+author is in reach: it must not count that station as reachable, or it will
+keep mail it holds for it, expecting to deliver the mail itself. (This was the
+reference implementation's own mistake, found by the same test.)
 
 ### 12.10 Two archivers meet
 
@@ -11108,6 +11196,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, the moderator's `edit:` / `remove:message` of section 10.4.1, and `state:closed` / `state:open` of section 10.4.2, judged at the act's moment; the chat wapp's closed groups use it |
 | Correcting and withdrawing, sections 7.8 and 10.4.1 | **implemented**: `edit:` and `r:<id> remove:message` for 1:1, closed groups, rooms, Status and Alerts; archivers purge a verified withdrawal and keep a tombstone; the courier releases a carried copy only on a verified one |
 | A station's own rooms, section 10.10 | **implemented** in the core's `WebChatApi` and the web chat: an administrator who proved their key, moderators appointed with `role:mod` and accepting, `remove:message` and `revoke:` [`until:`] signed in the browser, lifting by the station's grant; the boards do not have it yet |
+| Archivers handing on, section 12.9.8, and the file records of 12.9.2 | **implemented** in the core and the server edition (`XprsArchiverPush`, `XprsFileIndex`): Global talk, removals, mailbox declarations, key bindings and file records are handed to the other always-on archivers as they arrive; `portal/test/interop_federation.py` runs three real stations and checks the rooms, who is cared for where, mail from a person at one archiver to a person at another, a file found by its hash, and a moderator's removal reaching all three. Not on the boards: an ESP32 archiver is handed these packets and keeps them, and hands on nothing itself |
 | Moderators of the public rooms, section 10.10.3 | **implemented** in the core (`XprsPublicModerators`), the server edition and the web chat: the list from `xprs.dev/moderators.json` (read when an uplink comes up, at most every twelve hours; the last copy read is kept, none is in the build), a listed key's undirected `r:<id> remove:message` judged in the receive funnel, the archive's delete and tombstone, the act kept and asked for with the room, and Delete in the page's message menu for a visitor whose key is listed. The app's Chat hides what was removed and offers Delete to a listed moderator, through the verbs it uses for a closed group's moderators, and Settings has the switch. The boards' engine (`xwc.c`) honours the list for what it shows visitors and takes a listed visitor's removal; a board reads the list over TLS checked against the site's root, so one without the memory for the handshake honours nobody. Signature checks that fail are limited per minute in both engines |
 | Subgroups, `role:sub` nested five levels deep | not implemented; the chat wapp has a sub-room tree, but on NOSTR rooms and with authority inherited down the tree rather than stopping at each key |
 | Never filtering `sos`, `warning` and `info` by membership | not implemented; there is no membership filter to exempt them from |
