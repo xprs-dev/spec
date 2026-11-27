@@ -6694,7 +6694,7 @@ So an always-on public archiver **hands on what it takes first-hand**. A
 packet is first-hand when it came from a visitor of the archiver's own page,
 from its own radio, from a station that deposits with it (section 12.3), or
 is the archiver's own. It hands a copy, at once, on a directed lane, to the
-other always-on archivers it knows (reference: at most 16).
+other always-on archivers it knows.
 
 **What is handed on.** Publications, a packet with no `d:`, whose `scope:`
 reaches the whole network (section 9.11: `global`, a country list, or none),
@@ -6714,17 +6714,36 @@ said at and to the stations in its range, and no archiver serves them out of
 range either, on any door (section 9.11). And mail: a packet with `d:` moves
 under custody (sections 12.7, 12.8), toward its recipient and nowhere else.
 
-**It cannot loop and it cannot flood.** The copy handed on carries the
-archiver's callsign in `via:` (outside the signature and the identifier,
-section 4.9). An archiver that receives, over the internet, a publication
-already carrying a `via:` takes it and does not hand it on: it is somebody's
-hand-on already. So a packet crosses one archiver-to-archiver hop, and the
-archivers form a mesh in which each speaks for what it took itself. Further:
-each packet is handed on once per archiver (remembered by its identifier);
-only a packet whose `ts:` is within ten minutes is (a replayed month is
-history, and history is asked for); and only a packet whose signature the
-archiver checked, since handing on unchecked packets would make every archiver
-an amplifier for whoever can reach one of them.
+**It is passed along, and it cannot loop or flood.** Archivers do not all
+know each other: a hub passes few of its clients' announces (section 12.12.1),
+so two archivers that both reach a third may never have heard of one another.
+Measured with the same three stations joined through a real public archiver
+(2026-11-27): each reached it, neither reached the other, and what one handed
+on stopped there. So an archiver that is handed a publication hands it on in
+turn, under these bounds:
+
+- the copy carries each archiver's callsign in `via:` (outside the signature
+  and the identifier, section 4.9), and is never handed to a station already
+  in it, nor on by a station that finds itself there;
+- each archiver hands a packet on **once**, remembered by its identifier,
+  however many peers hand it the same packet;
+- the hop budget every relay keeps applies (section 9.1: three hops, nine
+  for a call for help or a warning);
+- only a packet whose `ts:` is within ten minutes is handed on (a replayed
+  month is history, and history is asked for);
+- only a packet whose signature the archiver checked is, since handing on
+  unchecked packets would make every archiver an amplifier for whoever can
+  reach one of them.
+
+A publication therefore costs at most one hand-on per archiver per peer, and
+ends when every archiver within three hops has seen it once.
+
+**Who is handed to.** At most 16 stations a packet (reference), in this
+order: the archivers the operator named; the stations that have themselves
+handed this archiver something (they run the same rule, and this is how two
+archivers that never heard each other's announce come to exchange directly);
+the stations that look always on (section 12.9.4); then other stations
+announcing the archive role.
 
 **This is not an import.** Section 12.9's three conditions are kept in
 substance. Every record is an original verifying on its author's key, and
