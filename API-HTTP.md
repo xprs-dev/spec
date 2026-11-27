@@ -432,7 +432,10 @@ signed by another key is not the administrator.
   is listed signs `t:moderate f:<callsign> ts:<now> r:<id> remove:message`,
   with no `d:`, and posts it to `/api/xprs/send`; anybody else's is refused
   with 403. Removed identifiers are in `moderation.removed` on
-  `/api/xprs/history`, as a station moderator's are.
+  `/api/xprs/history`, as a station moderator's are. The conformance suite
+  checks the listing and the refusals on every station; given a key the
+  station under test lists (`XPRS_PUBLIC_MOD_KEY`), it checks the removal
+  too.
 
 `POST /api/admin` with JSON `{"action": ..., "session": "<token>"}`:
 
