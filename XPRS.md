@@ -6762,7 +6762,53 @@ for `kind:message,moderate,mailbox,file`.
 a handed-on or replayed packet learns what its author said, not that its
 author is in reach: it must not count that station as reachable, or it will
 keep mail it holds for it, expecting to deliver the mail itself. (This was the
-reference implementation's own mistake, found by the same test.)
+reference implementation's own mistake, found by the same test.) Three rules
+keep the two apart:
+
+- **What a station passes on for somebody else says so.** A station that
+  hands on, deposits or forwards a packet it did not write adds its own
+  callsign to `via:`, on every lane: a hand-on, a deposit made for a visitor
+  of its page (section 12.8.3), held mail moved toward its holder (section
+  12.8.1). Its own packets leave as they are. Marking only some lanes is not
+  enough: measured, a visitor's words deposited unmarked put her in reach of
+  the archiver they were left with, and mail failed in every direction while
+  everything else crossed.
+- **A packet carrying `via:`, or one whose `ts:` is more than ten minutes
+  old, puts nobody in reach.** What its author says it does (`serve:`,
+  `dial:`) is still learned from it.
+- **On a text connection (section 13.0.2), a relayed line registers nobody.**
+  A signed line puts its author on the socket only when it carries no
+  `via:`. An archiver's socket carries that archiver; the people whose
+  packets it relays are not on it.
+
+**A lane with a route, or none.** A hand-on, and any wire one station hands
+another directly, goes on the first lane that can carry it NOW: a text
+connection between the two, whichever end opened it; then an addressed
+packet on the shared transport, when a route to the station is held. An
+address with no route is not a lane: the transport takes the wire and keeps
+it, the sender counts it as sent, and the station never sees it (measured:
+most of what one archiver handed on went to addresses nothing had a route
+to). So a peer with no lane is passed over and does not take one of the
+places, with one exception: a station that has itself handed this archiver
+something is alive, and its copy is left with the transport to go when the
+route comes, because routes between two archivers behind a hub come and go.
+
+**A record that arrives before the key that checks it waits.** The archiver
+that wrote a file record or relayed a mailbox declaration may never have
+announced to the one receiving it. Such a packet, when no key is held for its
+author, is kept for a short while (reference: two minutes, at most 64
+packets), the key is asked for (section 18.1), first of the station that
+handed the packet on, since it checked it; and when the key is learned the
+packet is taken as if it had just arrived. A packet that fails under a key
+that IS held is forged and is not kept.
+
+**Mail follows the same lanes, and is tried again.** Held mail moved toward
+its recipient's holder (section 12.8.1) is remembered as sent to a gateway
+only when it left. With no lane to the holder, the holder of the mail hands
+it to an archiver it chose and can reach, to carry (section 12.12 step 1),
+and tries the holder again each minute while the mail is held. An attempt
+remembered whether or not it left is an attempt made once: measured, mail for
+a person at another archiver stayed where it was written.
 
 ### 12.10 Two archivers meet
 
@@ -7375,6 +7421,14 @@ device holding a `dial:` for its archiver talks to it as text on that socket
 nothing, carries nothing for anybody, and costs its battery one idle
 connection. The announcement travels on the shared transport; the conversation
 does not.
+
+Who is on a connection: a signed line that verifies under the key held for
+its author puts that author on the socket, and what is held for that author
+is then delivered down it. Only a line its author sent itself: a line
+carrying `via:` was relayed by the station at the other end (an archiver
+handing on, or depositing for a visitor, section 12.9.8) and registers
+nobody, or the mail of a person at another archiver would be delivered to
+that archiver's socket and be kept there.
 
 Where it is learned: a pocket device hears `t:service` only while it is
 attached to a transport, on a charger, or during the session it opens to serve
@@ -11215,7 +11269,7 @@ purpose takes an unused type. Neither redefines an existing assignment.
 | `X5` group callsigns and `t:moderate` | **implemented** in the core (`XprsGroups`, `XprsGroupAct`): grants and acceptances, `role:mod`, revocation and suspension, `since:` voids, `hide:message`, the moderator's `edit:` / `remove:message` of section 10.4.1, and `state:closed` / `state:open` of section 10.4.2, judged at the act's moment; the chat wapp's closed groups use it |
 | Correcting and withdrawing, sections 7.8 and 10.4.1 | **implemented**: `edit:` and `r:<id> remove:message` for 1:1, closed groups, rooms, Status and Alerts; archivers purge a verified withdrawal and keep a tombstone; the courier releases a carried copy only on a verified one |
 | A station's own rooms, section 10.10 | **implemented** in the core's `WebChatApi` and the web chat: an administrator who proved their key, moderators appointed with `role:mod` and accepting, `remove:message` and `revoke:` [`until:`] signed in the browser, lifting by the station's grant; the boards do not have it yet |
-| Archivers handing on, section 12.9.8, and the file records of 12.9.2 | **implemented** in the core and the server edition (`XprsArchiverPush`, `XprsFileIndex`): Global talk, removals, mailbox declarations, key bindings and file records are handed to the other always-on archivers as they arrive; `portal/test/interop_federation.py` runs three real stations and checks the rooms, who is cared for where, mail from a person at one archiver to a person at another, a file found by its hash, and a moderator's removal reaching all three. Not on the boards: an ESP32 archiver is handed these packets and keeps them, and hands on nothing itself |
+| Archivers handing on, section 12.9.8, and the file records of 12.9.2 | **implemented** in the core and the server edition (`XprsArchiverPush`, `XprsFileIndex`): Global talk, removals, mailbox declarations, key bindings and file records are handed to the other always-on archivers as they arrive; `portal/test/interop_federation.py` runs three real stations and checks the rooms, who is cared for where, mail from a person at one archiver to a person at another, a file found by its hash, and a moderator's removal reaching all three; with `--live` the station already running is one of the three (first full pass on the real network 2026-11-28, 46 of 46; a second run passed 43, so it is not yet stable there). Not on the boards: an ESP32 archiver is handed these packets and keeps them, and hands on nothing itself |
 | Moderators of the public rooms, section 10.10.3 | **implemented** in the core (`XprsPublicModerators`), the server edition and the web chat: the list from `xprs.dev/moderators.json` (read when an uplink comes up, at most every twelve hours; the last copy read is kept, none is in the build), a listed key's undirected `r:<id> remove:message` judged in the receive funnel, the archive's delete and tombstone, the act kept and asked for with the room, and Delete in the page's message menu for a visitor whose key is listed. The app's Chat hides what was removed and offers Delete to a listed moderator, through the verbs it uses for a closed group's moderators, and Settings has the switch. The boards' engine (`xwc.c`) honours the list for what it shows visitors and takes a listed visitor's removal; a board reads the list over TLS checked against the site's root, so one without the memory for the handshake honours nobody. Signature checks that fail are limited per minute in both engines |
 | Subgroups, `role:sub` nested five levels deep | not implemented; the chat wapp has a sub-room tree, but on NOSTR rooms and with authority inherited down the tree rather than stopping at each key |
 | Never filtering `sos`, `warning` and `info` by membership | not implemented; there is no membership filter to exempt them from |
