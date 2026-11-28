@@ -142,6 +142,10 @@ Query parameters, all optional:
   and every row carrying `root:<id>` or `r:<id>`, oldest first within the
   window. With `room=`, inside that room.
 - `limit` -- rows to return; default 30, cap 200.
+- `after` -- the `cursor` of an earlier answer of this station: only the
+  rows it filed after that answer, among those the other parameters select.
+  A station that cannot place the mark (it restarted, the mark is older than
+  what it remembers, it knows no `after`) answers as if it were absent.
 
 ```json
 {
@@ -149,6 +153,7 @@ Query parameters, all optional:
   "count": 2,
   "held": 132,
   "time": "synced",
+  "cursor": "mhz3k2a.4711",
   "rows": [
     { "ts": 1755556210, "bearer": "espnow", "rssi": -49,
       "from": "X1RD89", "to": "", "type": "observation",
@@ -167,6 +172,16 @@ Row keys are the application's: `ts` (the sender's claim, 0 when it made none),
 broadcast), `type`, `sig` (`verified`, `unverified`, `forged`, `none`),
 `own` (true when this station originated it), `wire` (the packet verbatim --
 the author's bytes, the author's signature). `held` is the archive's total.
+
+`cursor` marks where the station's filing stood when it answered: a string
+the asker hands back unread as `after`. It is how a page that asks again
+every few seconds is told a packet once. `since` cannot do it alone: it
+compares the sender's timestamp, and a packet arrives when it arrives (an
+archiver hands it on an hour later, a relay's copy comes after the answer),
+so an asker has to reach back some minutes, and without `after` every row of
+those minutes comes back at every ask. Both are sent together: `since`
+bounds what the station reads, `after` what it sends. A station that keeps
+no such mark leaves `cursor` out. Also in `/api/xprs/mail`.
 
 Mail (a record carrying `d:`) in the general listing follows the radio rule
 (XPRS.md 12.7): it belongs to its two parties. A request with no `session`
