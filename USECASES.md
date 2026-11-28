@@ -18,6 +18,15 @@ can hear directly right now.
 A new station is claimed, named and joined to a real WiFi network from a
 phone, with no cable and nothing to type on the box.
 
+### 3a. Run a station I own from anywhere
+
+I own stations: a board on the roof, a Linux server, a phone left at home.
+From my own phone I see every one of them in one list beside the cameras
+and sensors around me, open any of them, read how it is doing and change
+it, whether I stand next to it or reach it across the internet over
+Reticulum. I can name up to three other people who may do the same. Nobody
+else can change anything. (XPRS.md 11.9, 11.10; the Devices app.)
+
 ### 4. Look after the station from a browser
 From a browser on the same WiFi, see which users the station hears, read
 what it has stored, read its log, and give it a message to send.
